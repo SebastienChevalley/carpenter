@@ -3,6 +3,8 @@ import QtQuick.Window 2.2
 import QtQuick.Layouts 1.2
 import QtQuick.Controls 1.4
 import "."
+import "qrc:/tools/tools/InsertTool.js" as InsertTool
+import "qrc:/tools/tools/MoveTool.js" as MoveTool
 
 Window {
     visible: true
@@ -14,39 +16,33 @@ Window {
         id: mainForm
         anchors.fill: parent
 
-        property var points : [];
-
         states: [
             State {
                 name: "InsertTool"
                 PropertyChanges {
                     target: mouseArea
-                    onPressed: { mouseArea.insertTools.onPressed() }
-                    onPositionChanged: { mouseArea.insertTools.onPositionChanged() }
-                    onReleased: { mouseArea.insertTools.onReleased() }
+                    onPressed: { console.log('pressed', mouseArea.insertTool.onPressed); mouseArea.insertTool.onPressed() }
+                    onPositionChanged: { mouseArea.insertTool.onPositionChanged() }
+                    onReleased: { mouseArea.insertTool.onReleased() }
                 }
             },
             State {
                 name: "MoveTool"
                 PropertyChanges {
                     target: mouseArea
-                    onPressed: { mouseArea.insertTools.onPressed() }
-                    onPositionChanged: { mouseArea.insertTools.onPositionChanged() }
-                    onReleased: { mouseArea.insertTools.onReleased() }
+                    onPressed: { mouseArea.moveTool.onPressed() }
+                    onPositionChanged: { mouseArea.moveTool.onPositionChanged() }
+                    onReleased: { mouseArea.moveTool.onReleased() }
                 }
             }
         ]
         state: "InsertTool"
+        property string previousTool: ""
+        property string currentTool: state;
 
-        onStateChanged: {
-            if(state === "MoveTool") {
-                // generate intermediate points;
-                mouseArea.lines.forEach(function(line) { mouseArea.lines.push(line.intermediatePoint()) });
-            }
-            else {
-                // remove intermediate points
-                mouseArea.lines = mouseArea.lines.filter(function(x) { return !(x instanceof IntermediatePoint) })
-            }
+
+        onCurrentToolChanged: {
+            state = currentTool;
         }
 
         FontLoader { source: "fonts/Material-Design-Iconic-Font.ttf" }
@@ -54,8 +50,18 @@ Window {
 
         MenuItem{ id: menuItems }
 
+        function toolItem(name) {
+            return name.charAt(0).toLowerCase() + name.slice(1);
+        }
+
         function changeTool(newTool) {
-            state = newTool
+            if(newTool !== currentTool) {
+                previousTool = currentTool;
+                mouseArea[toolItem(previousTool)].onLeaveTool();
+                mouseArea[toolItem(newTool)].onEnterTool();
+
+                currentTool = newTool
+            }
         }
 
         ToolsMenu {
@@ -90,6 +96,7 @@ Window {
                     property var lines: []
 
                     property var insertPoint : Qt.createComponent("InsertPoint.qml");
+                    property var intermediatePoint : Qt.createComponent("IntermediatePoint.qml");
                     property var lineUiComponent : Qt.createComponent("LineUi.qml");
                     property var insertLineComponent : Qt.createComponent("InsertLine.qml");
 
@@ -97,7 +104,7 @@ Window {
                         return Qt.vector2d(mouseX, mouseY);
                     }
 
-                    function nereastPoints(mousePosition) {
+                    function nearestPoints(mousePosition) {
                         return points
                             .map(function(x) { return { 'point' : x, 'distance' : x.distanceTo(mousePosition) } })
                             .filter(function(x) { return x.distance < Settings.minimalPointDistance })
@@ -109,107 +116,8 @@ Window {
                             .map(function(x) { return x.point });
                     }
 
-                    property var insertTools : {
-                        'onPressed': function() {
-                            var drawingLineGuide = Qt.createComponent("DrawingLineGuide.qml");
-
-                            var mousePosition = getMousePosition();
-                            var properties = { start: mousePosition, end: mousePosition };
-
-
-                            var distanceToMousePosition = nereastPoints(mousePosition);
-
-                            var insertedNew = distanceToMousePosition.length === 0;
-                            startingPoint = insertedNew ? insertPoint.createObject(parent, properties) : distanceToMousePosition[0];
-
-                            var guideProperties = properties;
-                            // FIXME sharing of points is bad
-                            guideProperties.start = startingPoint.start;
-                            //guideProperties.points = points;
-
-
-                            // creating the ending point, only visible when insertable
-                            endingPoint = insertPoint.createObject(parent, properties);
-
-                            insertLine = insertLineComponent.createObject(parent, properties)
-
-                            // visibility need guide properties /2.0
-                            endingPoint.visible = insertLine.isInsertable;
-                            startingPoint.visible =  true;
-
-
-                            // keep starting point because we're sure it will be on the schema
-                            if(insertedNew && !startingPoint.isContainsIn(points)) {
-                                console.log('will be inserted');
-                                points.push(startingPoint);
-                            }
-                        },
-                        'onPositionChanged': function() {
-                            if(!containsMouse) {
-                                return;
-                            }
-
-                            var mousePosition = getMousePosition();
-                            var nearest = nereastPoints(mousePosition);
-                            var isExistingPoints = points.indexOf(endingPoint) !== -1;
-
-                            endingPoint = (function() {
-                                if(nearest.length > 0) {
-                                    if(!isExistingPoints && !endingPoint.isContainsIn(points))
-                                        endingPoint.destroy();
-
-                                    return nearest[0]
-                                }
-                                else {
-                                    if(isExistingPoints)
-                                        return insertPoint.createObject(parent, { 'start' : mousePosition, 'visible': false });
-                                    else
-                                        return endingPoint.setStart(mousePosition);
-                                }
-                            })();
-
-                            insertLine.end = endingPoint.start;
-                            cursorShape = insertLine.isInsertable ? Qt.DragCopyCursor : Qt.ForbiddenCursor;
-                            endingPoint.visible = isExistingPoints ? true : insertLine.isInsertable;
-                        },
-                        'onReleased': function() {
-                            // only keep the ending point if it was insertable at the time of release
-                            if(insertLine.isInsertable) {
-                                if(!endingPoint.isContainsIn(points)) {
-                                    points.push(endingPoint);
-                                }
-
-
-                                if(!insertLine.isContainsIn(lines)) {
-                                    lines.push(lineUiComponent.createObject(parent, { 'start': startingPoint.start, 'end': endingPoint.start }));
-                                }
-                            }
-
-                            insertLine.destroy();
-                            cursorShape = Qt.ArrowCursor;
-
-                        }
-                    }
-
-                    property var moveTool : {
-                        'onPressed': function() {
-
-                            var nereast = nereastPoints(getMousePosition());
-
-                            if(nereast.length > 0) {
-                                // take the nearest.
-                                movingPoint = nearest[0];
-                            }
-                        },
-                        'onPositionChanged': function() {
-                            if(movingPoint !== null) {
-
-                            }
-                        },
-                        'onReleased': function() {
-                            movingPoint = null;
-                        }
-                    }
+                    property var insertTool: new InsertTool.InsertTool(mouseArea);
+                    property var moveTool: new MoveTool.MoveTool(mouseArea);
 
 
                     anchors.fill: parent

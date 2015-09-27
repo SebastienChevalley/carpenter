@@ -17,4 +17,9 @@
         <file>TopBar.qml</file>
         <file>IntermediatePoint.qml</file>
     </qresource>
+    <qresource prefix="/tools">
+        <file>tools/MoveTool.js</file>
+        <file>tools/InsertTool.js</file>
+        <file>tools/Tool.js</file>
+    </qresource>
 </RCC>
