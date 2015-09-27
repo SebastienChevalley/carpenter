@@ -6,8 +6,18 @@ Line {
     property vector2d pointer: updatePointer();
     property vector2d horizontal: Qt.vector2d(1,0)
 
+    property IntermediatePoint intermediatePoint
+
+
     function updatePointer() {
         pointer = computeLine();
+        updateIntermediatePoint();
+    }
+
+    function updateIntermediatePoint() {
+        if(intermediatePoint !== null) {
+            intermediatePoint.start = start.plus(pointer.times(0.5))
+        }
     }
 
     function thePointer() {

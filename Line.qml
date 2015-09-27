@@ -20,8 +20,8 @@ Item {
         return end.minus(start)
     }
 
-    function intermediatePoint() {
-        return computeLine().times(0.5)
+    function computeIntermediatePoint() {
+        return start.plus(computeLine().times(0.5));
     }
 }
 
