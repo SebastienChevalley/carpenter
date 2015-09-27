@@ -4,6 +4,7 @@ import "."
 Point {
     id: insertPoint
     property color pointColor : "black"
+    z: 20
 
     Rectangle {
         id: point
@@ -13,7 +14,6 @@ Point {
         color: pointColor
         x: start.x - radius
         y: start.y - radius
-        z:1000
     }
 }
 

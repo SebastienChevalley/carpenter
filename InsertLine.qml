@@ -3,6 +3,7 @@ import "."
 
 LineUi {
     fill: "blue"
+    z: 10
 
     property bool isInsertable: computeIsInsertable()
 
