@@ -1,0 +1,20 @@
+<RCC>
+    <qresource prefix="/">
+        <file>main.qml</file>
+        <file>MainForm.ui.qml</file>
+        <file>InsertPoint.qml</file>
+        <file>DrawingLineGuide.qml</file>
+        <file>Settings.qml</file>
+        <file>qmldir</file>
+        <file>Point.qml</file>
+        <file>Line.qml</file>
+        <file>LineUi.qml</file>
+        <file>InsertLine.qml</file>
+        <file>fonts/Material-Design-Iconic-Font.ttf</file>
+        <file>fonts/FontAwesome.otf</file>
+        <file>MenuItem.qml</file>
+        <file>ToolsMenu.qml</file>
+        <file>TopBar.qml</file>
+        <file>IntermediatePoint.qml</file>
+    </qresource>
+</RCC>
