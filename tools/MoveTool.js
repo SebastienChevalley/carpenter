@@ -23,10 +23,7 @@ MoveTool.prototype.onPressed = function() {
 
 
 MoveTool.prototype.onPositionChanged = function() {
-    var lines = this.sketch.lines;
-    var parent = this.mouseArea.parent;
-    var newPoint = this.getMousePosition();
-    var oldPoint = Qt.vector2d(this.movingPoint.start.x, this.movingPoint.start.y);
+
 
     function updateLines(lines, point, newPoint) {
         return function (direction) {
@@ -35,16 +32,19 @@ MoveTool.prototype.onPositionChanged = function() {
             }
 
             var found = lines.filter(function(line) { return line[direction].fuzzyEquals(point) })
-            console.log(found);
             found.forEach(function(line) {
                 line[direction] = newPoint
             });
         }
     }
 
-    console.log('oldPoint', oldPoint);
 
     if(this.movingPoint !== null) {
+        var lines = this.sketch.lines;
+        var parent = this.mouseArea.parent;
+        var newPoint = this.getMousePosition();
+        var oldPoint = Qt.vector2d(this.movingPoint.start.x, this.movingPoint.start.y);
+
         if(this.fakePoints.indexOf(this.movingPoint) !== -1) {
             var movingPoint = this.movingPoint;
 
@@ -64,22 +64,25 @@ MoveTool.prototype.onPositionChanged = function() {
                 this.components.lineUi.createObject(parent, { 'start': point, 'end' : end })
             ]
 
+            console.log('before', this.fakePoints.length);
             newLines.forEach(function(line) {
                 this.sketch.lines.push(line);
                 this.createIntermediatePointForLine(line);
             }, this);
+            console.log('after', this.fakePoints.length);
 
             // remove 'inter' from fakePoints
             var filterPoint = function(point) { return point !== movingPoint };
             this.fakePoints = this.fakePoints.filter(filterPoint);
-            this.sketch.points = this.sketch.points(filterPoint);
+            this.sketch.points = this.sketch.points.filter(filterPoint);
 
             // insert a new point
             movingPoint.destroy();
             this.movingPoint = this.components.insertPoint.createObject(parent, { 'start' : point });
+            console.log('afterafter', this.fakePoints.length);
         }
 
-        console.log('oldPoint', oldPoint);
+
         console.log('--------------------')
 
         // update connected line
@@ -89,8 +92,6 @@ MoveTool.prototype.onPositionChanged = function() {
 
         this.movingPoint.setStart(newPoint);
 
-        console.log('points : ', this.sketch.points);
-        console.log('lines :  ', this.sketch.lines);
     }
 }
 
