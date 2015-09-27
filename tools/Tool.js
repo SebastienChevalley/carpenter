@@ -24,10 +24,7 @@ function Tool(context) {
     }
 
     // todo create a dedicated class
-    this.sketch = {
-        lines: context.lines,
-        points: context.points
-    }
+    this.sketch = context.sketch;
 }
 
 Tool.prototype.neededMethods = [

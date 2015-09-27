@@ -92,8 +92,11 @@ Window {
                     property InsertPoint movingPoint
 
                     property InsertLine insertLine
-                    property var points: []
-                    property var lines: []
+
+                    property var sketch: {
+                        'points': [],
+                         'lines': []
+                    }
 
                     property var insertPoint : Qt.createComponent("InsertPoint.qml");
                     property var intermediatePoint : Qt.createComponent("IntermediatePoint.qml");
@@ -105,7 +108,7 @@ Window {
                     }
 
                     function nearestPoints(mousePosition) {
-                        return points
+                        return sketch.points
                             .map(function(x) { return { 'point' : x, 'distance' : x.distanceTo(mousePosition) } })
                             .filter(function(x) { return x.distance < Settings.minimalPointDistance })
                             .sort(function(a, b) {
