@@ -21,24 +21,21 @@ MoveTool.prototype.onPressed = function() {
     }
 }
 
+function updateLines(lines, point, newPoint) {
+    return function (direction) {
+        if(direction !== 'end' && direction !== 'start') {
+            throw new Error("direction can only be start or end");
+        }
 
-MoveTool.prototype.onPositionChanged = function() {
-
-
-    function updateLines(lines, point, newPoint) {
-        return function (direction) {
-            if(direction !== 'end' && direction !== 'start') {
-                throw new Error("direction can only be start or end");
-            }
-
-            var found = lines.filter(function(line) { return line[direction].fuzzyEquals(point) })
-            found.forEach(function(line) {
+        lines
+            .filter(function(line) { return line[direction].fuzzyEquals(point) })
+            .forEach(function(line) {
                 line[direction] = newPoint
             });
-        }
     }
+}
 
-
+MoveTool.prototype.onPositionChanged = function() {
     if(this.movingPoint !== null) {
         var lines = this.sketch.lines;
         var parent = this.mouseArea.parent;
@@ -53,45 +50,32 @@ MoveTool.prototype.onPositionChanged = function() {
             var end = movingPoint.line.end;
             var point = movingPoint.start;
 
-            // remove the line between start and stop
-            this.sketch.lines = lines.filter(function(line) { return line !== movingPoint.line })
-            // remove it from sketch
-            movingPoint.line.destroy();
-
             // add two lines [start, inter], [inter, stop]
-            var newLines = [
-                this.components.lineUi.createObject(parent, { 'start': start, 'end' : point }),
-                this.components.lineUi.createObject(parent, { 'start': point, 'end' : end })
-            ]
-
-            console.log('before', this.fakePoints.length);
-            newLines.forEach(function(line) {
+            [ [start, point], [point, end] ].forEach(function(component) {
+                var line = this.components.lineUi.createObject(parent, {  'start': component[0], 'end' : component[1]  })
                 this.sketch.lines.push(line);
                 this.createIntermediatePointForLine(line);
             }, this);
-            console.log('after', this.fakePoints.length);
 
-            // remove 'inter' from fakePoints
+            // removal
+            this.sketch.lines = lines.filter(function(line) { return line !== movingPoint.line })
+            movingPoint.line.destroy();
+
             var filterPoint = function(point) { return point !== movingPoint };
             this.fakePoints = this.fakePoints.filter(filterPoint);
             this.sketch.points = this.sketch.points.filter(filterPoint);
 
-            // insert a new point
+            // insert a new point after removed actual one
             movingPoint.destroy();
             this.movingPoint = this.components.insertPoint.createObject(parent, { 'start' : point });
-            console.log('afterafter', this.fakePoints.length);
+            this.sketch.points.push(this.movingPoint)
         }
-
-
-        console.log('--------------------')
 
         // update connected line
         var lineChanger = updateLines(this.sketch.lines, oldPoint, newPoint);
-
         ['end', 'start'].forEach(function(direction) { lineChanger(direction) })
 
         this.movingPoint.setStart(newPoint);
-
     }
 }
 
