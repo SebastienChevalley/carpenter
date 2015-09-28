@@ -16,6 +16,7 @@
         <file>ToolsMenu.qml</file>
         <file>TopBar.qml</file>
         <file>IntermediatePoint.qml</file>
+        <file>Sketch.qml</file>
     </qresource>
     <qresource prefix="/tools">
         <file>tools/MoveTool.js</file>

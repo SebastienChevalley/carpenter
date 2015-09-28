@@ -98,6 +98,8 @@ Window {
                          'lines': []
                     }
 
+                    //property Sketch sketch : Sketch {}
+
                     property var insertPoint : Qt.createComponent("InsertPoint.qml");
                     property var intermediatePoint : Qt.createComponent("IntermediatePoint.qml");
                     property var lineUiComponent : Qt.createComponent("LineUi.qml");
