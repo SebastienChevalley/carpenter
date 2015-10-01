@@ -6,6 +6,9 @@ import "."
 import "qrc:/tools/tools/InsertTool.js" as InsertTool
 import "qrc:/tools/tools/MoveTool.js" as MoveTool
 
+import "qrc:/lib/lib/lodash.js" as Lodash
+
+
 Window {
     visible: true
     width: 600
@@ -84,6 +87,7 @@ Window {
                 id: sketchArea
                 Layout.fillWidth: true
                 Layout.fillHeight: true
+
                 MouseArea {
                     id: mouseArea
 
@@ -93,37 +97,60 @@ Window {
 
                     property InsertLine insertLine
 
-                    property var sketch: {
-                        'points': [],
-                         'lines': []
+                    property var points: Object.create(Object.prototype)
+                    property var lines: Object.create(Object.prototype)
+
+                    property var sketch : Sketch {
+                        id:sketch
+
+                        onPointInserted: {
+                            mouseArea.points[point.toString()] = mouseArea.createPointUi(point);
+                        }
+                        onPointRemoved: {
+                            mouseArea.points[point.toString()].destroy();
+                        }
+                        onPointMoved: {
+                            var pointUi = mouseArea.points[point.toString()]
+                            mouseArea.points = Lodash.omit(mouseArea.points, point.toString());
+                            mouseArea.points[to.toString()] = pointUi.start.setStart(to);
+                        }
+
+                        onLineAdded: {
+
+                            mouseArea.lines[line.key()] = mouseArea.createLineUi(line)
+                        }
+                        onLineRemoved: {
+                            mouseArea.lines[line.key()].destroy()
+                            mouseArea.lines = Lodash.omit(mouseArea.lines, line.key())
+                        }
                     }
 
-                    //property Sketch sketch : Sketch {}
 
                     property var insertPoint : Qt.createComponent("InsertPoint.qml");
                     property var intermediatePoint : Qt.createComponent("IntermediatePoint.qml");
                     property var lineUiComponent : Qt.createComponent("LineUi.qml");
                     property var insertLineComponent : Qt.createComponent("InsertLine.qml");
 
+                    function createPointUi(point) {
+                        // todo move ui components outside of sketch class
+                        var newPoint = sketch.components.insertPoint.createObject(parent, { 'start': point })
+                        return newPoint
+                    }
+
+                    function createLineUi(line) {
+                        // todo move ui components outside of sketch class
+
+                        var properties = { 'startPoint': line.startPoint, 'endPoint': line.endPoint }
+                        var newLine = sketch.components.lineUi.createObject(parent, properties)
+                        return newLine
+                    }
+
                     function getMousePosition() {
                         return Qt.vector2d(mouseX, mouseY);
                     }
 
-                    function nearestPoints(mousePosition) {
-                        return sketch.points
-                            .map(function(x) { return { 'point' : x, 'distance' : x.distanceTo(mousePosition) } })
-                            .filter(function(x) { return x.distance < Settings.minimalPointDistance })
-                            .sort(function(a, b) {
-                                if(a.distance > b.distance) return 1;
-                                else if(a.distance < b.distance) return -1;
-                                else return 0;
-                            })
-                            .map(function(x) { return x.point });
-                    }
-
                     property var insertTool: new InsertTool.InsertTool(mouseArea);
                     property var moveTool: new MoveTool.MoveTool(mouseArea);
-
 
                     anchors.fill: parent
                 }

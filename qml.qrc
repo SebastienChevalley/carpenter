@@ -17,10 +17,14 @@
         <file>TopBar.qml</file>
         <file>IntermediatePoint.qml</file>
         <file>Sketch.qml</file>
+        <file>main.cpp</file>
     </qresource>
     <qresource prefix="/tools">
         <file>tools/MoveTool.js</file>
         <file>tools/InsertTool.js</file>
         <file>tools/Tool.js</file>
+    </qresource>
+    <qresource prefix="/lib">
+        <file>lib/lodash.js</file>
     </qresource>
 </RCC>
