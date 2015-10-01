@@ -69,6 +69,8 @@ Window {
                 mouseArea[toolItem(previousTool)].onLeaveTool();
                 mouseArea[toolItem(newTool)].onEnterTool();
 
+                menu.toggleState();
+
                 currentTool = newTool
             }
         }
