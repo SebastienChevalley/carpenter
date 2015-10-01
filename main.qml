@@ -43,6 +43,12 @@ Window {
         property string previousTool: ""
         property string currentTool: state;
 
+        property var _;
+
+        Component.onCompleted: {
+
+            this._ = Lodash.lodash(this);
+        }
 
         onCurrentToolChanged: {
             state = currentTool;
@@ -111,17 +117,23 @@ Window {
                         }
                         onPointMoved: {
                             var pointUi = mouseArea.points[point.toString()]
-                            mouseArea.points = Lodash.omit(mouseArea.points, point.toString());
-                            mouseArea.points[to.toString()] = pointUi.start.setStart(to);
+                            mouseArea.points = _.omit(mouseArea.points, point.toString());
+                            mouseArea.points[to.toString()] = pointUi;
+                            pointUi.setStart(to)
+
+                            //var relatedLines = _.values(mouseArea.lines).filter(function(x) { return x.startPoint === pointUi || x.endPoint === pointUi })
+                            //console.log("relatedLines", relatedLines)
+
+                            mouseArea.lines = _.mapKeys(mouseArea.lines, function(v, k) { return v.key() });
                         }
 
                         onLineAdded: {
-
                             mouseArea.lines[line.key()] = mouseArea.createLineUi(line)
                         }
                         onLineRemoved: {
-                            mouseArea.lines[line.key()].destroy()
-                            mouseArea.lines = Lodash.omit(mouseArea.lines, line.key())
+                            var key = line.key();
+                            mouseArea.lines[key].destroy()
+                            mouseArea.lines = _.omit(mouseArea.lines, key)
                         }
                     }
 
@@ -139,8 +151,10 @@ Window {
 
                     function createLineUi(line) {
                         // todo move ui components outside of sketch class
+                        var startPoint =  mouseArea.points[line.startPoint.start.toString()]
+                        var endPoint =  mouseArea.points[line.endPoint.start.toString()]
 
-                        var properties = { 'startPoint': line.startPoint, 'endPoint': line.endPoint }
+                        var properties = { 'startPoint':startPoint, 'endPoint': endPoint }
                         var newLine = sketch.components.lineUi.createObject(parent, properties)
                         return newLine
                     }

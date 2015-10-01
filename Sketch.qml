@@ -28,7 +28,7 @@ Item {
 
     Component.onCompleted: {
 
-        this._ = Lodash.library(this);
+        this._ = Lodash.lodash(this);
         console.log(this._)
         console.log(_.assign)
     }
@@ -72,30 +72,35 @@ Item {
         }
     }
 
-    signal movePoint(Point point, vector2d to)
+    signal movePoint(Point pointToMove, vector2d to)
     signal pointMoved(vector2d point, vector2d to)
 
-    onMovePoint: function(pointToMove, to) {
+    onMovePoint: {
         updateStore(movePointReducer(store, pointToMove, to))
     }
 
     function movePointReducer(store, pointToMove, to) {
-        if(pointExists(pointToMove.start)) {
+        if(!pointExists(pointToMove.start)) {
             console.error("Point doesn't exist in sketch")
             return store;
         }
         else {
-            var searchPoint = pointToMove.start;
-            var indexOfPoint = indexOfPoint(store, searchPoint);
+            var oldPoint = pointToMove.start;
+            var indexOfPoint = this.indexOfPoint(store, oldPoint);
 
             if(indexOfPoint === -1) {
                 console.error("Point not in the setch")
                 return store;
             }
             else {
-                var newPoints = [].concat(store.points.slice(0, indexOfPoint), [createPoint(to)], store.points.slice(indexOfPoint + 1, store.points.length))
-                pointMoved(poinToMove.start, to)
-                return _.assign({}, store, { 'points': newPoints });
+                var newPoint = createPoint(to)
+                var newPoints = [].concat(store.points.slice(0, indexOfPoint), [newPoint], store.points.slice(indexOfPoint + 1, store.points.length))
+                pointMoved(oldPoint, to)
+
+                // we should update the line too
+                var newStore = updatePointInLines(store, oldPoint, newPoint)
+
+                return _.assign({}, newStore, { 'points': newPoints });
             }
         }
     }
@@ -137,18 +142,20 @@ Item {
     }
 
     function addLineAndPointsReducer(store, start, end) {
-        store = addPointReducer(store, start);
-        store = addPointReducer(store, end);
+        var newStore = addPointReducer(store, start);
+        newStore = addPointReducer(newStore, end);
 
-        return addLineReducer(store, start, end);
+        return addLineReducer(newStore, start, end);
     }
 
     signal removeLine(Line line)
     signal lineRemoved(Line line)
 
     function removeLineReducer(store, line) {
+
         if(!lineExists(line.start, line.end)) {
             console.error("line doesn't exist in sketch")
+            return store;
         }
         else {
             lineRemoved(line);
@@ -165,21 +172,19 @@ Item {
         var end = line.end;
 
         // remove the line
-        var store = removeLineReducer(store, line)
+        var newStore = removeLineReducer(store, line)
         // add intermediate point
-        store = addPointReducer(store, intermediatePoint)
+        newStore = addPointReducer(newStore, intermediatePoint)
         // add lines
-        store = addLineReducer(store, start, intermediatePoint);
-        store = addLineReducer(store, intermediatePointm, end);
+        newStore = addLineReducer(newStore, start, intermediatePoint);
+        newStore = addLineReducer(newStore, intermediatePoint, end);
 
-        updateStore(store);
+        updateStore(newStore);
     }
 
-    function updateStore(newStore) {
-        history.push(store);
-        store = newStore;
-    }
-
+    /*
+     * Comparator
+     */
     function comparePoint(a, b) {
         return a.fuzzyEquals(b)
     }
@@ -196,8 +201,12 @@ Item {
     /**
       * @var position: vector2d
       */
-    function nearestPoints(position) {
-        return store.points
+    function nearestPoints(position, additionalPointsToConsider) {
+        if(additionalPointsToConsider === null || additionalPointsToConsider === undefined) {
+            additionalPointsToConsider = [];
+        }
+
+        return [].concat(additionalPointsToConsider, store.points)
             .map(function(x) { return { 'point' : x, 'distance' : x.distanceTo(position) } })
             .filter(function(x) { return x.distance < Settings.minimalPointDistance })
             .sort(function(a, b) {
@@ -208,37 +217,89 @@ Item {
             .map(function(x) { return x.point });
     }
 
+    function linesRelatedToPosition(vector) {
+        return store.lines.filter(function(line) { return comparePoint(line.start, vector) || comparePoint(line.end, vector) })
+    }
+
     /**
       * @param start vector2d
       * @param end vector2d
       */
-    function lineExists(start, end) {
+    function lineExists(start, end, providedStore) {
+        if(providedStore === undefined || providedStore === null) {
+            providedStore = store;
+        }
+
         return store.lines.filter(function(line) {
             return compareLineToPoints(line, start, end)
         }).length === 1
     }
 
     /**
-      * @var point: vector2d
+       @param searchPoint vector2d
       */
     function pointExists(searchPoint) {
-        return store.points.filter(function(point) { return comparePoint(searchPoint, point); })
-                     .length === 1;
+        var result = store.points.filter(function(point) {
+            return comparePoint(searchPoint, point.start);
+        }).length === 1;
+
+        return result;
     }
 
+    /**
+      * Find the index of a point in the points store collection
+      * @param store
+      * @param searchPoint vector2d
+      */
+    function indexOfPoint(store, searchPoint) {
+        store = store === undefined ? sketch.store : store;
+        return _.findIndex(store.points, function(point) { return comparePoint(searchPoint, point.start); })
+    }
+
+    /**
+      * @param oldPoint Point
+      * @param newPoint Point
+      */
+    function updatePointInLines(store, oldPoint, newPoint) {
+        var updatedLines = store.lines.map(function(line) {
+           if(comparePoint(line.startPoint.start, oldPoint)) {
+                return createLine(newPoint, line.endPoint)
+           }
+           else if(comparePoint(line.endPoint.start, oldPoint)) {
+                return createLine(line.startPoint, newPoint)
+           }
+           else {
+               // keep the line
+               return line;
+           }
+        });
+
+        return _.assign({}, store, { 'lines': updatedLines })
+    }
+
+    // Qt component creation
     function createPoint(start) {
         var newPoint = components.point.createObject(parent, { 'start': start })
         return newPoint;
     }
 
-    function createLine(start, end) {
-        var newPoint = components.line.createObject(parent, { 'startPoint': start, 'endPoint': end })
+    function createLine(startPoint, endPoint) {
+        var newPoint = components.line.createObject(parent, { 'startPoint': startPoint, 'endPoint': endPoint })
         return newPoint;
     }
 
-    function indexOfPoint(store, searchPoint) {
-        store = store === undefined ? sketch.store : store;
-        return _.findIndex(store.points, function(point) { return comparePoint(searchPoint, point.start); })
+    // Store functions
+    function updateStore(newStore) {
+        history.push(store);
+        store = newStore;
+    }
+
+    function getLines() {
+        return [].concat(store.lines);
+    }
+
+    function getPoints() {
+        [].concat(store.points);
     }
 }
 

@@ -1,122 +1,114 @@
 Qt.include("Tool.js")
+Qt.include("qrc:/lib/lib/lodash.js");
+
+var _ = lodash(this);
 
 function MoveTool(context) {
     Tool.call(this, context);
 
+
     console.log('Build a MoveTool');
+
+
+    this.intermediatePointUi = Qt.createComponent("qrc:/IntermediatePoint.qml");
 
     this.fakePoints = [];
     this.movingPoint = null;
+
+    this.createIntermediatePoint = function(line, lineUi) {
+        var point = this.intermediatePointUi.createObject(this.mouseArea, { 'line': line, 'lineUi': lineUi, 'start': line.computeIntermediatePoint() });
+        return point;
+    };
+
+    /**
+      * @param position from which point do the computation, usually current mouse position
+      * @return null if no nearest point found or the nearest point
+      */
+    this.computeNearestPoint = function(position) {
+        var nearestPoints = this.sketch.nearestPoints(position, this.fakePoints);
+
+        if(nearestPoints.length === 0) {
+            return null;
+        }
+        else {
+            return nearestPoints[0];
+        }
+    };
+
+    this.fakePointMapper = function(line) {
+        return this.createIntermediatePoint(line, this.mouseArea.lines[line.key()]);
+    }
 }
 
 MoveTool.prototype = Object.create(Tool.prototype);
 MoveTool.prototype.constructor = MoveTool;
 
 MoveTool.prototype.onPressed = function() {
-    var nearests = this.nearestPoints(this.getMousePosition());
+    var mousePosition = this.mouseArea.getMousePosition();
+    var nearestPoint = this.computeNearestPoint(mousePosition);
+    var nearestPointVector = nearestPoint === null ? mousePosition : nearestPoint.start;
 
-    if(nearests.length > 0) {
-        // take the nearest.
-        this.movingPoint = nearests[0];
-    }
-}
+    this.movingPoint = this.mouseArea.createPointUi(nearestPointVector)
 
-function updateLines(lines, point, newPoint) {
-    return function (direction) {
-        if(direction !== 'end' && direction !== 'start') {
-            throw new Error("direction can only be start or end");
+    /*
+     * if point is not on the sketch, then it's a fake one,
+     * then it's time to insert it on the sketch, remove
+     * the line on it and insert two new lines
+     */
+    if(!this.sketch.pointExists(this.movingPoint.start)) {
+        var correspondingFakePointIndex = _.findIndex(this.fakePoints, function(point) {
+            return this.sketch.comparePoint(point.start, this.movingPoint.start)
+        }, this);
+
+        if(correspondingFakePointIndex === -1) {
+            console.error("fake point doesn't exist in point collection")
         }
+        else {
+            var correspondingFakePoint = this.fakePoints[correspondingFakePointIndex];
+            this.sketch.insertIntermediatePoint(correspondingFakePoint.lineUi);
 
-        lines
-            .filter(function(line) { return line[direction].fuzzyEquals(point) })
-            .forEach(function(line) {
-                line[direction] = newPoint
-            });
+            this.fakePoints = this.fakePoints.filter(function(x) { return x !== correspondingFakePoint });
+            console.assert(this.fakePoints.length === countBefore - 1)
+
+            var newFakePoints = this.sketch.linesRelatedToPosition(correspondingFakePoint.start).map(this.fakePointMapper, this);
+
+            this.fakePoints = [].concat(this.fakePoints, newFakePoints)
+
+            correspondingFakePoint.destroy()
+        }
     }
+
 }
 
 MoveTool.prototype.onPositionChanged = function() {
-    if(this.movingPoint !== null) {
-        var lines = this.sketch.lines;
-        var parent = this.mouseArea.parent;
-        var newPoint = this.getMousePosition();
-        var oldPoint = Qt.vector2d(this.movingPoint.start.x, this.movingPoint.start.y);
+    var newPosition = this.mouseArea.getMousePosition()
 
-        if(this.fakePoints.indexOf(this.movingPoint) !== -1) {
-            var movingPoint = this.movingPoint;
-
-            // get start and stop from current line
-            var start = movingPoint.line.start;
-            var end = movingPoint.line.end;
-            var point = movingPoint.start;
-
-            // add two lines [start, inter], [inter, stop]
-            [ [start, point], [point, end] ].forEach(function(component) {
-                var line = this.components.lineUi.createObject(parent, {  'start': component[0], 'end' : component[1]  })
-                this.sketch.lines.push(line);
-                this.createIntermediatePointForLine(line);
-            }, this);
-
-            // removal
-            this.sketch.lines = lines.filter(function(line) { return line !== movingPoint.line })
-            movingPoint.line.destroy();
-
-            var filterPoint = function(point) { return point !== movingPoint };
-            this.fakePoints = this.fakePoints.filter(filterPoint);
-            this.sketch.points = this.sketch.points.filter(filterPoint);
-
-            // insert a new point after removed actual one
-            movingPoint.destroy();
-            this.movingPoint = this.components.insertPoint.createObject(parent, { 'start' : point });
-            this.sketch.points.push(this.movingPoint)
-        }
-
-        // update connected line
-        var lineChanger = updateLines(this.sketch.lines, oldPoint, newPoint);
-        ['end', 'start'].forEach(function(direction) { lineChanger(direction) })
-
-        this.movingPoint.setStart(newPoint);
-    }
+    // it should send store update
+    this.sketch.movePoint(this.movingPoint, newPosition)
+    this.movingPoint.setStart(newPosition)
 }
 
-
 MoveTool.prototype.onReleased = function() {
+    this.movingPoint.destroy();
     this.movingPoint = null;
 }
 
-MoveTool.prototype.createIntermediatePointForLine = function(line) {
-    var parent = this.mouseArea.parent;
-    var intermediatePoint = this.components.intermediatePoint;
-
-    var insertedPoint = intermediatePoint.createObject(parent, { 'start': line.computeIntermediatePoint(), 'line': line });
-    line.intermediatePoint = insertedPoint;
-    this.sketch.points.push(insertedPoint);
-    this.fakePoints.push(insertedPoint);
-}
-
-
 MoveTool.prototype.onEnterTool = function() {
-    console.log('points on enter before : ', this.sketch.points);
+    // insert fakes points
+    // we need to use lines on the UI not in the model (to enable auto update)
+    // not : this.sketch.getLines().map...
+    this.fakePoints = this.sketch.getLines().map(this.fakePointMapper, this);
 
-    var lines = this.sketch.lines;
-
-    lines.forEach(this.createIntermediatePointForLine, this)
-
-    console.log('points on enter after : ', this.sketch.points);
+    // reset the handle point
+    this.movingPoint = null;
 }
-
-
 
 MoveTool.prototype.onLeaveTool = function() {
-    console.log('points on leave before : ', this.sketch.points);
+    if(this.movingPoint !== null) {
+        this.movingPoint.destroy();
+        this.movingPoint = null;
+    }
 
-    var points = this.sketch.points;
-    var fakePoints = this.fakePoints;
-
-    this.sketch.points = points.filter(function(point) { return fakePoints.indexOf(point) === -1 }, this)
-    this.fakePoints.forEach(function(pointToDelete) { pointToDelete.destroy() })
+    this.fakePoints.forEach(function(point) { point.destroy(); });
     this.fakePoints = [];
-
-    console.log('points on leave after : ', this.sketch.points);
 }
-

@@ -1,6 +1,8 @@
 import QtQuick 2.0
 
 Item {
+    id: myLine
+
     property Point startPoint: Point {
         start: Qt.vector2d(10,10)
     }
@@ -11,6 +13,11 @@ Item {
 
     property vector2d start: startPoint.start
     property vector2d end: endPoint.start
+
+    Component.onCompleted: {
+       //startPoint.startChanged.connect(coucou)
+       //endPoint.startChanged.connect(coucou)
+    }
 
 
     /*endPoint.onStartChanged: {
