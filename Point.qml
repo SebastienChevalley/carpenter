@@ -3,10 +3,6 @@ import QtQuick 2.0
 Item {
     property vector2d start;
 
-    onStartChanged: {
-        "Point: start changed"
-    }
-
     // todo put in a model class
     function distanceTo(point) {
         return point.minus(start).length();
