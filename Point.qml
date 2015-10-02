@@ -2,6 +2,7 @@ import QtQuick 2.0
 
 Item {
     property vector2d start;
+    property real identifier
 
     // todo put in a model class
     function distanceTo(point) {

@@ -112,30 +112,30 @@ Window {
                         id:sketch
 
                         onPointInserted: {
-                            mouseArea.points[point.toString()] = mouseArea.createPointUi(point);
+                            mouseArea.points[identifier] = mouseArea.createPointUi(point, identifier);
                         }
                         onPointRemoved: {
-                            mouseArea.points[point.toString()].destroy();
+                            mouseArea.points[identifier].destroy();
+                            mouseArea.points = _.omit(mouseArea.points, identifier)
                         }
                         onPointMoved: {
-                            var pointUi = mouseArea.points[point.toString()]
-                            mouseArea.points = _.omit(mouseArea.points, point.toString());
-                            mouseArea.points[to.toString()] = pointUi;
+                            var pointUi = mouseArea.points[identifier]
                             pointUi.setStart(to)
+                        }
+                        onLineUpdated: {
+                           var line = mouseArea.lines[identifier]
 
-                            //var relatedLines = _.values(mouseArea.lines).filter(function(x) { return x.startPoint === pointUi || x.endPoint === pointUi })
-                            //console.log("relatedLines", relatedLines)
-
-                            mouseArea.lines = _.mapKeys(mouseArea.lines, function(v, k) { return v.key() });
+                            if(line.intermediatePoint) {
+                                line.intermediatePoint.line = newLine
+                            }
                         }
 
                         onLineAdded: {
-                            mouseArea.lines[line.key()] = mouseArea.createLineUi(line)
+                            mouseArea.lines[line.identifier] = mouseArea.createLineUi(line)
                         }
                         onLineRemoved: {
-                            var key = line.key();
-                            mouseArea.lines[key].destroy()
-                            mouseArea.lines = _.omit(mouseArea.lines, key)
+                            mouseArea.lines[identifier].destroy()
+                            mouseArea.lines = _.omit(mouseArea.lines, identifier)
                         }
                     }
 
@@ -145,18 +145,18 @@ Window {
                     property var lineUiComponent : Qt.createComponent("LineUi.qml");
                     property var insertLineComponent : Qt.createComponent("InsertLine.qml");
 
-                    function createPointUi(point) {
+                    function createPointUi(point, identifier) {
                         // todo move ui components outside of sketch class
-                        var newPoint = sketch.components.insertPoint.createObject(parent, { 'start': point })
+                        var newPoint = sketch.components.insertPoint.createObject(parent, { 'start': point, 'identifier': identifier })
                         return newPoint
                     }
 
                     function createLineUi(line) {
                         // todo move ui components outside of sketch class
-                        var startPoint =  mouseArea.points[line.startPoint.start.toString()]
-                        var endPoint =  mouseArea.points[line.endPoint.start.toString()]
+                        var startPoint =  mouseArea.points[line.startPoint.identifier]
+                        var endPoint =  mouseArea.points[line.endPoint.identifier]
 
-                        var properties = { 'startPoint':startPoint, 'endPoint': endPoint }
+                        var properties = { 'startPoint':startPoint, 'endPoint': endPoint, 'identifier': line.identifier }
                         var newLine = sketch.components.lineUi.createObject(parent, properties)
                         return newLine
                     }

@@ -3,6 +3,8 @@ import QtQuick 2.0
 Item {
     id: myLine
 
+    property real identifier
+
     property Point startPoint: Point {
         start: Qt.vector2d(10,10)
     }

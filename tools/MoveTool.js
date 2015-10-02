@@ -16,7 +16,7 @@ function MoveTool(context) {
     this.movingPoint = null;
 
     this.createIntermediatePoint = function(line, lineUi) {
-        var point = this.intermediatePointUi.createObject(this.mouseArea, { 'line': line, 'lineUi': lineUi, 'start': line.computeIntermediatePoint() });
+        var point = this.sketch.components.intermediatePoint.createObject(this.mouseArea.parent, { 'line': line, 'lineUi': lineUi, 'start': line.computeIntermediatePoint() });
         return point;
     };
 
@@ -36,7 +36,13 @@ function MoveTool(context) {
     };
 
     this.fakePointMapper = function(line) {
-        return this.createIntermediatePoint(line, this.mouseArea.lines[line.key()]);
+        var lineUi = this.mouseArea.lines[line.identifier]
+        var point = this.createIntermediatePoint(line, lineUi);
+
+        // link point inthe UI
+        lineUi.intermediatePoint = point
+
+        return point;
     }
 }
 
@@ -46,57 +52,77 @@ MoveTool.prototype.constructor = MoveTool;
 MoveTool.prototype.onPressed = function() {
     var mousePosition = this.mouseArea.getMousePosition();
     var nearestPoint = this.computeNearestPoint(mousePosition);
-    var nearestPointVector = nearestPoint === null ? mousePosition : nearestPoint.start;
-
-    this.movingPoint = this.mouseArea.createPointUi(nearestPointVector)
+    var isNearestPoint = nearestPoint !== null;
+    var nearestPointVector = !isNearestPoint ? mousePosition : nearestPoint.start;
 
     /*
      * if point is not on the sketch, then it's a fake one,
      * then it's time to insert it on the sketch, remove
      * the line on it and insert two new lines
      */
-    if(!this.sketch.pointExists(this.movingPoint.start)) {
-        var correspondingFakePointIndex = _.findIndex(this.fakePoints, function(point) {
+    if(isNearestPoint) {
+        this.movingPoint = this.mouseArea.createPointUi(nearestPointVector)
+        this.movingPoint.identifier = isNearestPoint ? nearestPoint.identifier : -1;
+
+        var correspondingFakePoint = _.find(this.fakePoints, function(point) {
             return this.sketch.comparePoint(point.start, this.movingPoint.start)
         }, this);
 
-        if(correspondingFakePointIndex === -1) {
+        if(correspondingFakePoint === undefined) {
             console.error("fake point doesn't exist in point collection")
         }
         else {
-            var correspondingFakePoint = this.fakePoints[correspondingFakePointIndex];
+            /*
+             * Convert the fake to true one and remove the line between the points
+             *  and add two new lines
+             */
             this.sketch.insertIntermediatePoint(correspondingFakePoint.lineUi);
 
+            this.movingPoint.identifier = this.sketch.pointByVector(correspondingFakePoint.start).identifier
+
+            /*
+             *  Remove the old fake point and add the two new created to the collection
+             */
             this.fakePoints = this.fakePoints.filter(function(x) { return x !== correspondingFakePoint });
-            console.assert(this.fakePoints.length === countBefore - 1)
 
             var newFakePoints = this.sketch.linesRelatedToPosition(correspondingFakePoint.start).map(this.fakePointMapper, this);
-
             this.fakePoints = [].concat(this.fakePoints, newFakePoints)
 
             correspondingFakePoint.destroy()
         }
     }
 
+
+
 }
 
 MoveTool.prototype.onPositionChanged = function() {
-    var newPosition = this.mouseArea.getMousePosition()
+    if(this.movingPoint !== null) {
+        /*
+         * Try to find some point to stick on, if exists,
+         * show to the user it can be merged
+         */
+        var newPosition = this.mouseArea.getMousePosition()
+        var nearestPoint = this.computeNearestPoint(newPosition)
+        var isPointToStick = nearestPoint !== null;
+        //newPosition = isPointToStick ? nearestPoint.start : newPosition;
 
-    // it should send store update
-    this.sketch.movePoint(this.movingPoint, newPosition)
-    this.movingPoint.setStart(newPosition)
+        this.sketch.movePoint(this.movingPoint.identifier, newPosition)
+        this.movingPoint.setStart(newPosition)
+    }
 }
 
 MoveTool.prototype.onReleased = function() {
-    this.movingPoint.destroy();
-    this.movingPoint = null;
+    if(this.movingPoint !== null) {
+
+        this.movingPoint.destroy();
+        this.movingPoint = null;
+    }
 }
 
 MoveTool.prototype.onEnterTool = function() {
     // insert fakes points
     // we need to use lines on the UI not in the model (to enable auto update)
-    // not : this.sketch.getLines().map...
     this.fakePoints = this.sketch.getLines().map(this.fakePointMapper, this);
 
     // reset the handle point
@@ -104,10 +130,8 @@ MoveTool.prototype.onEnterTool = function() {
 }
 
 MoveTool.prototype.onLeaveTool = function() {
-    if(this.movingPoint !== null) {
+    if(this.movingPoint !== null)
         this.movingPoint.destroy();
-        this.movingPoint = null;
-    }
 
     this.fakePoints.forEach(function(point) { point.destroy(); });
     this.fakePoints = [];
