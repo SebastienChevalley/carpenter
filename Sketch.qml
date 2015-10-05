@@ -70,7 +70,7 @@ Item {
         }
         else {
             pointRemoved(id)
-            return _.assign({}, store, { 'points': store.points.filter(function(point) { return !point.identifier === id }) })
+            return _.assign({}, store, { 'points': store.points.filter(function(point) { return point.identifier !== id }) })
         }
     }
 
