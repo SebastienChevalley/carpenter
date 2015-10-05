@@ -351,7 +351,7 @@ Item {
     }
 
     function getPoints() {
-        [].concat(store.points);
+        return [].concat(store.points);
     }
 }
 
