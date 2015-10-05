@@ -191,6 +191,48 @@ Item {
         updateStore(newStore);
     }
 
+    signal mergeTwoPoint(Point thisOne, Point withThis)
+
+    onMergeTwoPoint: {
+        console.log("ON MERGE TWO POINT")
+        // get each lines concerned with this point
+        var lines = linesRelatedToId(thisOne.identifier)
+        var newStore = store
+
+        if(lines.length === 0) {
+            //console.error("no related lines with this point")
+        }
+        else {
+            // make a couple with each endPoint and the newPoint
+            var couples = lines
+                .map(function(line) {
+                    if(line.startPoint.identifier === thisOne.identifier) {
+                        return [withThis, line.endPoint];
+                    }
+                    else {
+                        //console.assert(comparePoint(line.end, thisOne.start), "MERGE TWO POINT : line related to point but doesn't match with extremities")
+                        return [line.startPoint, withThis];
+                    }
+                })
+                .filter(function(couple) { return couple[0].identifier !== couple[1].identifier && couple[0].start !== couple[1].start })
+                .filter(function(couple) { return !lineExists(couple[0].identifier, couple[1].identifier) }, this)
+
+            console.log("LINES TO REMOVE", lines)
+
+            // remove the lines
+            newStore = lines.reduce(function(store, line) { return removeLineReducer(store, line.identifier) }, store)
+
+            // insert new lines
+            newStore = couples.reduce(function(store, couple) { return addLineReducer(store, couple[0].identifier, couple[1].identifier) }, newStore)
+        }
+
+        // we always want to remove
+        newStore = removePointReducer(newStore, thisOne.identifier)
+        console.assert(newStore.points.length === store.points.length - 1, "MERGE TWO POINT :merged point wasn't removed correctly")
+
+        updateStore(newStore)
+    }
+
     /*
      * Comparator
      */
@@ -217,12 +259,14 @@ Item {
     /**
       * @var position: vector2d
       */
-    function nearestPoints(position, additionalPointsToConsider) {
-        if(additionalPointsToConsider === null || additionalPointsToConsider === undefined) {
-            additionalPointsToConsider = [];
+    function nearestPoints(position, collection) {
+        if(collection === null || collection === undefined) {
+            collection = store.points;
         }
 
-        return [].concat(additionalPointsToConsider, store.points)
+        //console.log("search on", collection, "near", position)
+
+        return collection
             .map(function(x) { return { 'point' : x, 'distance' : x.distanceTo(position) } })
             .filter(function(x) { return x.distance < Settings.minimalPointDistance })
             .sort(function(a, b) {
@@ -233,8 +277,14 @@ Item {
             .map(function(x) { return x.point });
     }
 
-    function linesRelatedToPosition(vector) {
+    function linesRelatedToPosition(vector, store) {
+        store = store === undefined ? this.store : store;
         return store.lines.filter(function(line) { return comparePoint(line.start, vector) || comparePoint(line.end, vector) })
+    }
+
+    function linesRelatedToId(id, store) {
+        store = store === undefined ? this.store : store;
+        return store.lines.filter(function(line) { return line.startPoint.identifier === id || line.endPoint.identifier === id })
     }
 
     /**

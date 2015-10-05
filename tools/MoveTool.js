@@ -6,14 +6,11 @@ var _ = lodash(this);
 function MoveTool(context) {
     Tool.call(this, context);
 
-
-    console.log('Build a MoveTool');
-
-
     this.intermediatePointUi = Qt.createComponent("qrc:/IntermediatePoint.qml");
 
     this.fakePoints = [];
     this.movingPoint = null;
+    this.canBeMerged = false;
 
     this.createIntermediatePoint = function(line, lineUi) {
         var point = this.sketch.components.intermediatePoint.createObject(this.mouseArea.parent, { 'line': line, 'lineUi': lineUi, 'start': line.computeIntermediatePoint() });
@@ -24,8 +21,13 @@ function MoveTool(context) {
       * @param position from which point do the computation, usually current mouse position
       * @return null if no nearest point found or the nearest point
       */
-    this.computeNearestPoint = function(position) {
-        var nearestPoints = this.sketch.nearestPoints(position, this.fakePoints);
+    this.computeNearestPoint = function(position, collection) {
+        // todo allow sketch.nearestPoints to accept a collection
+        if(collection === undefined) {
+            collection = [].concat(this.sketch.getPoints(), this.fakePoints.filter(function(point) { return point.visible }))
+        }
+
+        var nearestPoints = this.sketch.nearestPoints(position, collection);
 
         if(nearestPoints.length === 0) {
             return null;
@@ -35,14 +37,28 @@ function MoveTool(context) {
         }
     };
 
+    this.computeNearestPointThatCouldBeMerged = function(position) {
+        return this.computeNearestPoint(position, this.sketch.getPoints().filter(function(x) { return x.identifier !== this.movingPoint.identifier }, this))
+    }
+
+    this.createFakePoints = function() {
+       return this.sketch.getLines().map(this.fakePointMapper, this)
+    }
+
     this.fakePointMapper = function(line) {
         var lineUi = this.mouseArea.lines[line.identifier]
         var point = this.createIntermediatePoint(line, lineUi);
+        var that = this;
 
         // link point inthe UI
         lineUi.intermediatePoint = point
 
+
         return point;
+    }
+
+    this.isMovingPoint = function() {
+        return this.movingPoint !== null
     }
 }
 
@@ -50,6 +66,8 @@ MoveTool.prototype = Object.create(Tool.prototype);
 MoveTool.prototype.constructor = MoveTool;
 
 MoveTool.prototype.onPressed = function() {
+    this.canBeMerged = false;
+
     var mousePosition = this.mouseArea.getMousePosition();
     var nearestPoint = this.computeNearestPoint(mousePosition);
     var isNearestPoint = nearestPoint !== null;
@@ -97,23 +115,41 @@ MoveTool.prototype.onPressed = function() {
 }
 
 MoveTool.prototype.onPositionChanged = function() {
-    if(this.movingPoint !== null) {
+    if(this.isMovingPoint()) {
         /*
          * Try to find some point to stick on, if exists,
          * show to the user it can be merged
          */
         var newPosition = this.mouseArea.getMousePosition()
-        var nearestPoint = this.computeNearestPoint(newPosition)
+        var nearestPoint = this.computeNearestPointThatCouldBeMerged(newPosition)
         var isPointToStick = nearestPoint !== null;
-        //newPosition = isPointToStick ? nearestPoint.start : newPosition;
+        newPosition = isPointToStick ? nearestPoint.start : newPosition;
+        this.canBeMerged = isPointToStick;
 
         this.sketch.movePoint(this.movingPoint.identifier, newPosition)
         this.movingPoint.setStart(newPosition)
+
+        /*
+         * update fake points to disabled if they are sticker
+         */
+        this.fakePoints.forEach(function(point) {
+            point.visible = !point.line.start.fuzzyEquals(point.line.end);
+        })
     }
 }
 
 MoveTool.prototype.onReleased = function() {
-    if(this.movingPoint !== null) {
+    if(this.isMovingPoint()) {
+        if(this.canBeMerged) {
+            var origin = this.movingPoint;
+            var mergePoint = this.computeNearestPointThatCouldBeMerged(this.mouseArea.getMousePosition())
+
+            this.sketch.mergeTwoPoint(origin, mergePoint)
+
+            this.fakePoints.forEach(function(point) { point.destroy(); });
+            this.fakePoints = [];
+            this.fakePoints = this.createFakePoints();
+        }
 
         this.movingPoint.destroy();
         this.movingPoint = null;
@@ -123,7 +159,7 @@ MoveTool.prototype.onReleased = function() {
 MoveTool.prototype.onEnterTool = function() {
     // insert fakes points
     // we need to use lines on the UI not in the model (to enable auto update)
-    this.fakePoints = this.sketch.getLines().map(this.fakePointMapper, this);
+    this.fakePoints = this.createFakePoints();
 
     // reset the handle point
     this.movingPoint = null;
