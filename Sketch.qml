@@ -64,7 +64,7 @@ Item {
     }
 
     function removePointReducer(store, id) {
-        if(!pointExists(id)) {
+        if(!pointExistsById(id)) {
             console.error("Point doesn't exist in sketch")
             return store;
         }
