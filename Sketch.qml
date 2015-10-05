@@ -132,14 +132,19 @@ Item {
             console.error("ending point doesn't exist in sketch")
             return store;
         }
-        else if(lineExists(idStart, idEnd)) {
-            console.error("line already exists in sketch")
-            return store;
-        }
         else {
-            var newLine = createLine(store.points[indexOfStart], store.points[indexOfEnd])
-            lineAdded(newLine)
-            return _.assign({}, store, { 'lines': [].concat(store.lines, [newLine]) })
+            var startPoint = store.points[indexOfStart]
+            var endPoint = store.points[indexOfEnd]
+
+            if(lineExistsByVector(startPoint.start, endPoint.start, store)) {
+                console.error("line already exists in sketch")
+                return store;
+            }
+            else {
+                var newLine = createLine(startPoint, endPoint)
+                lineAdded(newLine)
+                return _.assign({}, store, { 'lines': [].concat(store.lines, [newLine]) })
+            }
         }
     }
 
@@ -243,6 +248,16 @@ Item {
 
         return providedStore.lines.filter(function(line) {
             return compareLineToIdentifier(line, idStart, idEnd)
+        }).length === 1
+    }
+
+    function lineExistsByVector(start, end, providedStore) {
+        if(providedStore === undefined || providedStore === null) {
+            providedStore = store;
+        }
+
+        return providedStore.lines.filter(function(line) {
+            return compareLineToPoints(line, start, end)
         }).length === 1
     }
 
