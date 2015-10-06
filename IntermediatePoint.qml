@@ -7,5 +7,7 @@ InsertPoint {
     property real identifier: -1
     property bool stop: false
 
+
+    visible: !(line.start.fuzzyEquals(line.end));
 }
 

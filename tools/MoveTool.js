@@ -128,13 +128,6 @@ MoveTool.prototype.onPositionChanged = function() {
 
         this.sketch.movePoint(this.movingPoint.identifier, newPosition)
         this.movingPoint.setStart(newPosition)
-
-        /*
-         * update fake points to disabled if they are sticker
-         */
-        this.fakePoints.forEach(function(point) {
-            point.visible = !point.line.start.fuzzyEquals(point.line.end);
-        })
     }
 }
 
