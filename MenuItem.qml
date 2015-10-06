@@ -2,7 +2,7 @@ import QtQuick 2.0
 
 ListModel {
     ListElement {
-        name: "Insert line"
+        name: "Insert line and point"
         icon: "\uf040"
         fontName: "FontAwesome"
         tool: "InsertTool"
