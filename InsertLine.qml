@@ -2,7 +2,6 @@ import QtQuick 2.0
 import "."
 
 LineUi {
-    fill: "blue"
     z: 10
 
     property bool isInsertable: computeIsInsertable()
@@ -13,6 +12,8 @@ LineUi {
     onEndChanged: {
         isInsertable = computeIsInsertable()
     }
+
+    fill: isInsertable ? "blue" : "red"
 
 
     function computeIsInsertable() {
