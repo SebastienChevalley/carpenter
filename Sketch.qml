@@ -149,11 +149,17 @@ Item {
     }
 
     function addLineAndPointsReducer(store, start, end) {
-
         var newStore = addPointReducer(store, start);
-        newStore = addPointReducer(newStore, end);
 
-        return addLineReducer(newStore, pointByVector(start, newStore).identifier, pointByVector(end, newStore).identifier);
+        if(start.fuzzyEquals(end)) {
+            console.error("addLineAndPointsReducer")
+        }
+        else {
+            newStore = addPointReducer(newStore, end);
+            newStore = addLineReducer(newStore, pointByVector(start, newStore).identifier, pointByVector(end, newStore).identifier);
+        }
+
+        return newStore;
     }
 
     signal removeLine(real identifier)
