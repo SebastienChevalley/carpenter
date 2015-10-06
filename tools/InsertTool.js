@@ -20,8 +20,15 @@ function InsertTool(context) {
     /**
       * Return a vector2d to indicate the starting point of the new line
       */
-    this.computeNearestPoint = function(position) {
-        var nearestPoints = this.sketch.nearestPoints(position)
+    this.computeNearestPoint = function(position, distance) {
+        // we omit the starting point if it exists to compute nearest points
+        var collection = this.sketch.getPoints().filter(function(point) {
+            var start = this.startingPoint;
+
+            return  start.start === undefined ? true : !(start.start.fuzzyEquals(point.start))
+        }, this);
+
+        var nearestPoints = this.sketch.nearestPoints(position, collection)
 
         return nearestPoints.length === 0 ? position : nearestPoints[0].start;
     }
