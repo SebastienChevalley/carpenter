@@ -23,6 +23,12 @@ function Tool(context) {
         intermediatePoint: context.intermediatePoint
     }
 
+    this.fields = {
+        widthEdit: context.widthEditField,
+        verticalConstraint: context.verticalConstraint,
+        horizontalConstraint: context.horizontalConstraint
+    }
+
     // todo create a dedicated class
     this.sketch = context.sketch;
 }

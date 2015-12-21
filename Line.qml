@@ -16,6 +16,24 @@ Item {
     property vector2d start: startPoint.start
     property vector2d end: endPoint.start
 
+    property vector2d pointer: updatePointer();
+
+    property bool verticallyConstrained: false
+    property bool horizontallyConstrained: false
+    property bool distanceFixed : false
+    property real desiredDistance : 0
+
+    function updatePointer() {
+        pointer = computeLine();
+    }
+
+    onStartChanged: {
+        updatePointer()
+    }
+    onEndChanged: {
+        updatePointer()
+    }
+
     Component.onCompleted: {
        //startPoint.startChanged.connect(coucou)
        //endPoint.startChanged.connect(coucou)

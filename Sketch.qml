@@ -1,4 +1,6 @@
 import QtQuick 2.0
+import SketchConstraintsSolver 1.0
+
 import "."
 import "qrc:/lib/lib/lodash.js" as Lodash
 
@@ -13,7 +15,15 @@ Item {
     property var _;
     property var history: [];
 
-    property var store: { 'points': [], 'lines': [] };
+    property var store: {
+        'points': [],
+        'lines': [],
+        'constraints': [],
+        'scale': {
+            'set': false,
+            'mmPerPixel': 0.0
+        }
+    };
 
 
     property Item components : Item {
@@ -27,11 +37,15 @@ Item {
         property var insertLine : Qt.createComponent("InsertLine.qml");
     }
 
+    property SketchConstraintsSolver constraintsSolver: SketchConstraintsSolver { }
+
     Component.onCompleted: {
 
         this._ = Lodash.lodash(this);
         console.log(this._)
         console.log(_.assign)
+
+        constraintsSolver.setSketch(this);
     }
 
     /*
@@ -75,10 +89,24 @@ Item {
     }
 
     signal movePoint(real identifier, vector2d to)
+    signal movePoints(var pointsToMove)
     signal pointMoved(real identifier, vector2d to)
 
     onMovePoint: {
         updateStore(movePointReducer(store, identifier, to))
+    }
+
+    onMovePoints: {
+        console.log("constrained", store.lines.filter(function(x) { return x.verticallyConstrained || x.horizontallyConstrained; }))
+
+        // TODO : merge points if they fall in same place (degenerate situation)
+
+        var newStore = store;
+        for (var identifier in pointsToMove) {
+            newStore = movePointReducer(newStore, parseInt(identifier, 10), pointsToMove[identifier]);
+        }
+
+        updateStore(newStore);
     }
 
     function movePointReducer(store, id, to) {
@@ -239,6 +267,40 @@ Item {
         updateStore(newStore)
     }
 
+    signal setInitialScale(real line, real mmLength)
+
+    onSetInitialScale: {
+        console.log("received setInitialScale(", line, mmLength, ")")
+        updateStore(_.assign({}, store, { 'scale' : { 'set': true, 'mmPerPixel': mmLength / line } }))
+        console.log("store.scale", JSON.stringify(store.scale))
+    }
+
+    function isScaleSet() {
+        return store.scale.set === true;
+    }
+
+    signal verticallyConstrainLine(real identifier, bool constrain)
+
+    onVerticallyConstrainLine: {
+        var index = indexOfLine(store, identifier);
+        store.lines[index].verticallyConstrained = constrain;
+    }
+
+    signal horizontallyConstrainLine(real identifier, bool constrain)
+
+    onHorizontallyConstrainLine: {
+        var index = indexOfLine(store, identifier);
+        store.lines[index].horizontallyConstrained = constrain;
+    }
+
+    signal setDesiredDistance(real identifier, real desiredLength)
+
+    onSetDesiredDistance: {
+        var index = indexOfLine(store, identifier);
+        store.lines[index].distanceFixed = true;
+        store.lines[index].desiredDistance = desiredLength;
+    }
+
     /*
      * Comparator
      */
@@ -259,7 +321,7 @@ Item {
         var lineStart = line.startPoint.identifier
         var lineEnd = line.endPoint.identifier
         return (lineStart === idStart && lineEnd    === idEnd)
-            || (lineEnd   === idStart && lineStart === idStart)
+           || (lineEnd   === idStart && lineStart === idStart)
     }
 
     /**
@@ -363,6 +425,11 @@ Item {
         return _.findIndex(store.points, function(point) { return point.identifier === id; })
     }
 
+    function indexOfLine(store, id) {
+        store = store === undefined ? this.store : store;
+        return _.findIndex(store.lines, function(line) { return line.identifier === id; })
+    }
+
     signal lineUpdated(real identifier, Line newLine);
 
     /**
@@ -372,12 +439,12 @@ Item {
     function updatePointInLines(store, id, newPoint) {
         var updatedLines = store.lines.map(function(line) {
            if(line.startPoint.identifier === id) {
-                var newLine = createLine(newPoint, line.endPoint, line.identifier)
+                var newLine = createLine(newPoint, line.endPoint, line.identifier, store)
                 lineUpdated(line.identifier, newLine)
                 return newLine
            }
            else if(line.endPoint.identifier === id) {
-               var newLine = createLine(line.startPoint, newPoint, line.identifier)
+               var newLine = createLine(line.startPoint, newPoint, line.identifier, store)
                lineUpdated(line.identifier, newLine)
                return newLine;
            }
@@ -397,19 +464,34 @@ Item {
             console.log("NEW IDENTIFIER : Point", id)
         }
 
-        var newPoint = components.point.createObject(parent, { 'start': start, 'identifier': id })
+        var newPoint = components.point.createObject(parent, {
+                                                         'start': start,
+                                                         'identifier': id })
         return newPoint;
     }
 
-    function createLine(startPoint, endPoint, id) {
+    function createLine(startPoint, endPoint, id, providedStore) {
+        var newLine = false;
         if(id === undefined) {
+            newLine = true;
             id = identifier++;
             console.log("NEW IDENTIFIER : Line", id)
         }
+        else {
+            var providedStore = providedStore || store
+            var oldLine = providedStore.lines[indexOfLine(providedStore, id)]
+        }
 
-        var newLine = components.line.createObject(parent, { 'startPoint': startPoint, 'endPoint': endPoint, 'identifier': id })
+        var newLine = components.line.createObject(parent, {
+            'startPoint': startPoint,
+            'endPoint': endPoint,
+            'identifier': id,
+            'verticallyConstrained': newLine ? false : oldLine.verticallyConstrained,
+            'horizontallyConstrained': newLine ? false: oldLine.horizontallyConstrained
+        })
         return newLine;
     }
+
 
     // Store functions
     function updateStore(newStore) {

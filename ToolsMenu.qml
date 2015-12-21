@@ -7,7 +7,7 @@ import '.'
 Rectangle {
 
     id: menu
-    width: 320
+    width: 250
 
     z: 100
     height: menuItems.count * itemHeight

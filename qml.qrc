@@ -23,6 +23,8 @@
         <file>tools/MoveTool.js</file>
         <file>tools/InsertTool.js</file>
         <file>tools/Tool.js</file>
+        <file>tools/DeleteTool.js</file>
+        <file>tools/SelectTool.js</file>
     </qresource>
     <qresource prefix="/lib">
         <file>lib/lodash.js</file>
