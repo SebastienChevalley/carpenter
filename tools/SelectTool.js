@@ -37,6 +37,9 @@ function SelectTool(context) {
         console.log(line);
         this.fields.widthEdit.enabled = true;
 
+        var fieldContent = line.distanceFixed ? line.desiredDistance : "";
+        this.fields.widthEdit.text = fieldContent;
+
         this.fields.verticalConstraint.enabled = true;
         this.fields.verticalConstraint.checked = line.verticallyConstrained;
 
@@ -48,7 +51,7 @@ function SelectTool(context) {
         console.log("enableWidthFieldSubmit", this);
 
         if(this.sketch.isScaleSet()) {
-
+            this.sketch.setDesiredDistance(this.selectedLine.identifier, parseFloat(this.fields.widthEdit.text))
         }
         else {
             this.sketch.setInitialScale(this.selectedLine.pointer.length(), parseFloat(this.fields.widthEdit.text));

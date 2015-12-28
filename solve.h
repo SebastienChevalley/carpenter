@@ -28,8 +28,8 @@
 #define pointOnPoint	 0
 #define pointToLine 	 1
 #define pointOnLine     2
-#define horizontal       3
-#define vertical         4
+#define sketchSolveHorizontal       3
+#define sketchSolveVertical         4
 #define internalAngle	 5
 #define radiusValue		 6
 #define tangentToArc	 7

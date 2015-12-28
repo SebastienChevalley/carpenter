@@ -126,24 +126,26 @@ Window {
                     anchors.rightMargin: 10
                     z: 100
                     onClicked: {
-                        mouseArea.converter.exportToFile(sketch, "./output.dae");
-                        /*if(mouseArea.sketch.constraintsSolver.solve()) {
+                        //mouseArea.converter.exportToFile(sketch, "./output.dae");
+                        mouseArea.sketch.constraintsSolver.solve()
+                        if(mouseArea.sketch.constraintsSolver.solve()) {
                             mouseArea.sketch.constraintsSolver.applyOnSketch();
                             console.log("SKETCH SOLVER: found a solution")
                         }
                         else {
                             console.log("SKETCH SOLVER: fail.")
-                        }*/
+                        }
                     }
                 }
 
                 Label {
-                    text: "First, you should set the scale by selecting an item"
+                    text: "First, you should set the scale by selecting an item, and defines its length"
                     z:100
                     anchors.bottom: parent.bottom
                     anchors.bottomMargin: 10
                     anchors.left: parent.left
                     anchors.leftMargin: 10
+                    id: helpTip
                 }
 
                 MouseArea {
@@ -193,6 +195,16 @@ Window {
                         }
                         onVerticallyConstrainLine: {
                             mouseArea.lines[identifier].verticallyConstrained = constrain;
+                        }
+
+                        onSetInitialScale: {
+                            helpTip.text = "Then you can set the distance for each line"
+                            widthEditField.placeholderText = "Line length"
+                        }
+
+                        onSetDesiredDistance: {
+                            mouseArea.lines[identifier].distanceFixed = true;
+                            mouseArea.lines[identifier].desiredDistance = desiredLength;
                         }
                     }
 
@@ -266,6 +278,7 @@ Window {
                         validator: RegExpValidator {
                             regExp: /^([0-9]*)\.([0-9]*)|([0-9]+)$/
                         }
+                        placeholderText: "Initial scale"
                     }
 
                     Label {

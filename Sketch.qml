@@ -279,6 +279,15 @@ Item {
         return store.scale.set === true;
     }
 
+    function getScale() {
+        if(this.isScaleSet()) {
+            return store.scale.mmPerPixel;
+        }
+        else {
+            throw new Error("Should set the initial scale before");
+        }
+    }
+
     signal verticallyConstrainLine(real identifier, bool constrain)
 
     onVerticallyConstrainLine: {
@@ -487,7 +496,9 @@ Item {
             'endPoint': endPoint,
             'identifier': id,
             'verticallyConstrained': newLine ? false : oldLine.verticallyConstrained,
-            'horizontallyConstrained': newLine ? false: oldLine.horizontallyConstrained
+            'horizontallyConstrained': newLine ? false: oldLine.horizontallyConstrained,
+            'distanceFixed': newLine ? false : oldLine.distanceFixed,
+            'desiredDistance': newLine ? 0 : oldLine.desiredDistance
         })
         return newLine;
     }

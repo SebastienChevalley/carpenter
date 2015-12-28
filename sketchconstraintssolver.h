@@ -20,11 +20,6 @@ class SketchConstraintsSolver : public QObject
     Q_OBJECT
     public:
         explicit SketchConstraintsSolver(QObject *parent = 0);
-        static std::function<double(double, double, double, double)> partialDerivativeFunction(
-                ConstrainedPoint* p1,
-                ConstrainedPoint* p2,
-                int variable
-        );
 
     public slots:
         bool solve();

@@ -9,13 +9,13 @@
 class ConstrainedPoint
 {
     public:
-        ConstrainedPoint(float x, float y, QObject* point);
-        bool tryToSetX(QSharedPointer<float> x);
-        bool tryToSetY(QSharedPointer<float> y);
+        ConstrainedPoint(double x, double y, QObject* point);
+        bool tryToSetX(QSharedPointer<double> x);
+        bool tryToSetY(QSharedPointer<double> y);
         QVector2D point();
         operator QString() const;
-        QSharedPointer<float> x;
-        QSharedPointer<float> y;
+        QSharedPointer<double> x;
+        QSharedPointer<double> y;
         QString identifier();
         bool fixedX;
         bool fixedY;

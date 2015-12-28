@@ -625,7 +625,7 @@ double calc(Constraint * cons, int consLength)
        }
 
 
-       if(cons[i].type==vertical)
+       if(cons[i].type==sketchSolveVertical)
        {
            double odx = L1_P2_x - L1_P1_x;
            /*
@@ -642,7 +642,7 @@ double calc(Constraint * cons, int consLength)
            error+=odx*odx*1000;
        }
 
-       if(cons[i].type==horizontal)
+       if(cons[i].type==sketchSolveHorizontal)
        {
            //double odx = L1_P2_x - L1_P1_x;
            double ody = L1_P2_y - L1_P1_y;

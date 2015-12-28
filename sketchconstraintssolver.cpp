@@ -3,6 +3,7 @@
 #include <QDebug>
 #include "opencv2/core/core.hpp"
 #include "opencv2/core/mat.hpp"
+#include "solve.h"
 using namespace cv;
 
 SketchConstraintsSolver::SketchConstraintsSolver(QObject *parent) : QObject(parent)
@@ -64,14 +65,16 @@ bool SketchConstraintsSolver::solve() {
 
         bool distanceFixed = line->property("distanceFixed").toBool();
 
-        ConstrainedLine* cLine1 = new ConstrainedLine(this->points[start], this->points[end]);
-        ConstrainedLine* cLine2 = new ConstrainedLine(this->points[end], this->points[start]);
+        int identifier = line->property("identifier").toInt();
+
+        ConstrainedLine* cLine1 = new ConstrainedLine(this->points[start], this->points[end], identifier);
+        ConstrainedLine* cLine2 = new ConstrainedLine(this->points[end], this->points[start], identifier);
 
         this->points[start]->increaseConstraintAmount();
         this->points[end]->increaseConstraintAmount();
 
         if(distanceFixed) {
-            float desiredDistance = line->property("desiredDistance").toFloat();
+            double desiredDistance = line->property("desiredDistance").toDouble();
 
             cLine1->setDesiredDistance(desiredDistance);
             cLine2->setDesiredDistance(desiredDistance);
@@ -154,118 +157,106 @@ bool SketchConstraintsSolver::solve() {
         }
     }
 
-    // apply distance constraints
-
-    int freeVariables = 0;
-    int equationsCounts = this->constraints.size();
-
-    if(equationsCounts > 0) {
-        // should traverse all the graphs to remove the unneeded free variables
-
-        if(freeVariables > equationsCounts) {
-            // need to fix some points, to much degrees of freedom
-            // should classify point by their freedomness
-
-
-        }
-
-        if(freeVariables < equationsCounts) {
-            qDebug() << "too much constraints for the number of free variables";
-            return false;
-        }
-
-        Mat jacobian = Mat(equationsCounts,equationsCounts, CV_64F);
-        Mat oldXs = Mat(equationsCounts,1, CV_64F);
-        Mat fX = Mat(equationsCounts,1, CV_64F);
-        Mat newXs = Mat(equationsCounts,1, CV_64F);
-
-        /*do {
-            for(int i = 0; i < equationsCounts; i++) {
-                jacobian.at<float>(i, constraints[i]->i1) = constraints[i]->df1(
-                            oldXs[constraints[i]->i1],
-                            oldXs[constraints[i]->i2],
-                            oldXs[constraints[i]->i3],
-                            oldXs[constraints[i]->i4],
-                );
-
-                oldXs.at<double>(i,0) = oldXs.at(i, 0);
-            }
-
-            oldXs.at<double>(0,0) = oldX0;
-            oldXs.at<double>(1,0) = oldX1;
-
-            fX.at<double>(0,0) = f1(oldX0, oldX1);
-            fX.at<double>(1,0) = f2(oldX0, oldX1);
-
-
-        } while(stepCount < STEPS_COUNT && enoughPrecision(oldXs, newXs, equationsCounts));*/
-
-    }
-
-    qDebug() << "visited edges" << visitedEdge;
-    qDebug() << "applied constraints" << appliedConstraints;
-
-    foreach(ConstrainedPoint* point, this->points) {
-        qDebug() << "(" << *(point->x.data()) << "," << *(point->y.data()) << ")";
-        qDebug() << point->identifier();
-    }
-
-    this->solved = true;
-    return this->solved;
-}
-
-std::function<double(double, double, double, double)> SketchConstraintsSolver::partialDerivativeFunction(
-        ConstrainedPoint* p1,
-        ConstrainedPoint* p2,
-        int variable
-) {
     /*
-     * Variables :
-     * p1 = (x1,y1)
-     * p2 = (x2,y2)
+     * apply distance constraints
      *
-     * 1 : x1
-     * 2 : y1
-     * 3 : x2
-     * 4 : y2
-     *
-     *
-     * The formula is
-     * f: sqrt((x1-x2)² - (y1-y2)²) = d
-     * => f: (x1-x2)² - (y1-y2)² - d² = 0
-     * => df/dx1 = 2*(x1-x2)
-     * => df/dy1 = 2*(y1-y2)
-     * => df/dx2 = -2*(x1-x2)
-     * => df/dy2 = -2(y1-y2)
-     *
-     * Take care if the variable is fixed, otherwise the formula is 0
+     * 1. separate the parameters between free and non-free one
+     * 2. collect constraints objects
      */
 
-    float minus = (variable == 3 || variable == 4) ? -1 : 1;
 
-    float zero = 1;
-    if(
-        (variable == 1 && p1->fixedX)
-        || (variable == 2 && p1->fixedY)
-        || (variable == 3 && p2->fixedX)
-        || (variable == 4 && p2->fixedY)
-    ) {
-        zero = 0;
+    // FIXME VLA length
+    QList<double*> parameters;
+    SketchSolvePoint solvePoints[100];
+    Line solveLines[100];
+    Constraint constraints[100];
+    double *pparameters[parameters.size()];
+    QMap<QString, int> identifierToSolvePointsIndex;
+
+    int i = 0;
+    foreach(ConstrainedPoint* point, this->points) {
+        if(!point->fixedX) {
+            parameters.append(point->x.data());
+        }
+        if(!point->fixedY) {
+            parameters.append(point->y.data());
+        }
+        solvePoints[i].x = point->x.data();
+        solvePoints[i].y = point->y.data();
+
+        identifierToSolvePointsIndex.insert(point->identifier(), i);
+
+        i++;
     }
 
-    float takeXs = 0;
-    float takeYs = 0;
+    int constraintsCount = 0;
+    QSet<int> identifiersSeen;
 
-    if(variable == 1 || variable == 3) {
-        takeXs = 1;
-    }
-    if(variable == 2 || variable == 4) {
-        takeYs = 1;
+    foreach(ConstrainedLine* line, this->lines) {
+        if(line->isDistanceFixed() && !identifiersSeen.contains(line->identifier)) {
+            constraintsCount++;
+            identifiersSeen.insert(line->identifier);
+        }
     }
 
-    return [=](double x1, double y1, double x2, double y2) {
-        return zero * minus * 2 * ( takeXs * (x1-x2) + takeYs * (y1-y2));
-    };
+    identifiersSeen.clear();
+
+    i = 0;
+    foreach(ConstrainedLine* line, this->lines) {
+        if(line->isDistanceFixed() && !identifiersSeen.contains(line->identifier)) {
+            qDebug() << "index for p1 identifier["
+                     << line->start->identifier()
+                     << "] = "
+                     << identifierToSolvePointsIndex[line->start->identifier()]
+                     << ":";
+
+            auto honk = solvePoints[identifierToSolvePointsIndex[line->start->identifier()]];
+            solveLines[i].p1 = honk;
+            solveLines[i].p2 = solvePoints[identifierToSolvePointsIndex[line->end->identifier()]];
+
+            constraints[i].line1 = solveLines[i];
+            constraints[i].type = lineLength;
+            // ask for visibility
+            constraints[i].parameter = &line->desiredDistance;
+
+            i++;
+        }
+    }
+
+    i = 0;
+    foreach(double* parameter, parameters) {
+        pparameters[i] = parameter;
+        i++;
+    }
+
+    qDebug() << "line constraints";
+    qDebug() << "----------------\n";
+    qDebug() << "constraints: " << constraintsCount;
+    qDebug() << "parameters: " << parameters.size();
+
+
+    int result = ::solve(pparameters, parameters.size(), constraints, constraintsCount, fine);
+
+    if(result == succsess) {
+        qDebug() << "solution found";
+        qDebug() << "visited edges" << visitedEdge;
+        qDebug() << "applied constraints" << appliedConstraints;
+
+        foreach(ConstrainedPoint* point, this->points) {
+            qDebug() << "(" << *(point->x.data()) << "," << *(point->y.data()) << ")";
+            qDebug() << point->identifier();
+        }
+
+        this->solved = true;
+    }
+    else if(result == noSolution) {
+        qDebug() << "solution not found";
+    }
+    else {
+        qDebug() << "unexpected things founds";
+    }
+
+    return this->solved;
 }
 
 void SketchConstraintsSolver::applyOnSketch() {

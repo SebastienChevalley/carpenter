@@ -4,13 +4,13 @@
 #include <QDebug>
 
 
-ConstrainedPoint::ConstrainedPoint(float x, float y, QObject* point)
+ConstrainedPoint::ConstrainedPoint(double x, double y, QObject* point)
 {
     this->relatedPoint = point;
-    this->x = QSharedPointer<float>(new float);
+    this->x = QSharedPointer<double>(new double);
     *(this->x) = x;
 
-    this->y = QSharedPointer<float>(new float);
+    this->y = QSharedPointer<double>(new double);
     *(this->y) = y;
 
     this->fixedX = false;
@@ -18,7 +18,7 @@ ConstrainedPoint::ConstrainedPoint(float x, float y, QObject* point)
     this->constraintAmount = 0;
 }
 
-bool ConstrainedPoint::tryToSetX(QSharedPointer<float> x) {
+bool ConstrainedPoint::tryToSetX(QSharedPointer<double> x) {
     if(this->fixedX) {
         return false;
     }
@@ -29,7 +29,7 @@ bool ConstrainedPoint::tryToSetX(QSharedPointer<float> x) {
     }
 }
 
-bool ConstrainedPoint::tryToSetY(QSharedPointer<float> y) {
+bool ConstrainedPoint::tryToSetY(QSharedPointer<double> y) {
     if(this->fixedY) {
         return false;
     }

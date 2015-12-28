@@ -1,6 +1,7 @@
 #include "testnewtonsolver.h"
 #include "solve.h"
 #include <QDebug>
+#include <QSharedPointer>
 
 testnewtonsolver::testnewtonsolver()
 {
@@ -98,7 +99,7 @@ testnewtonsolver::testnewtonsolver()
      */
     SketchSolvePoint points[7];
     Line lines[8];
-    Constraint constraints[8];
+    Constraint constraints[9];
     double parameters[14];
 
     parameters[0] = -1.78;
@@ -177,20 +178,37 @@ testnewtonsolver::testnewtonsolver()
     constraints[6].line1 = lines[6];
     constraints[7].line1 = lines[7];
 
-    constraints[0].type = horizontal;
-    constraints[1].type = vertical;
-    constraints[2].type = horizontal;
-    constraints[3].type = vertical;
+    constraints[0].type = sketchSolveHorizontal;
+    constraints[1].type = sketchSolveVertical;
+    constraints[2].type = sketchSolveHorizontal;
+    constraints[3].type = sketchSolveVertical;
 
-    constraints[4].type = horizontal;
-    constraints[5].type = vertical;
-    constraints[6].type = horizontal;
-    constraints[7].type = vertical;
+    constraints[4].type = sketchSolveHorizontal;
+    constraints[5].type = sketchSolveVertical;
+    constraints[6].type = sketchSolveHorizontal;
+    constraints[7].type = sketchSolveVertical;
+
+    constraints[7].line1 = lines[5];
+    constraints[7].type = lineLength;
+
+    double honk = 20;
+    constraints[7].parameter = &honk;
 
     double *pparameters[14];
     for(int i = 0; i < 14; i++) {
         pparameters[i] = &parameters[i];
     }
+
+    QSharedPointer<double> hola = QSharedPointer<double>(new double);
+
+    *(hola) = 212.0;
+
+    double* ciao = hola.data();
+
+    *ciao = 20;
+
+    qDebug() << "hola" << *hola;
+
 
     int result = solve(pparameters, 14, constraints, 8, fine);
 

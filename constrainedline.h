@@ -6,7 +6,7 @@
 class ConstrainedLine
 {
     public:
-        ConstrainedLine(ConstrainedPoint* start, ConstrainedPoint* end);
+        ConstrainedLine(ConstrainedPoint* start, ConstrainedPoint* end, int identifier);
         ConstrainedLine* verticallyConstrained();
         ConstrainedLine* horizontallyConstrained();
         operator QString() const;
@@ -15,13 +15,15 @@ class ConstrainedLine
         bool isVerticallyConstrained();
         bool isHorizontalConstrained();
         bool isDistanceFixed();
-        float getDesiredDistance();
-        ConstrainedLine* setDesiredDistance(float distance);
+        double getDesiredDistance();
+        ConstrainedLine* setDesiredDistance(double distance);
+        double desiredDistance;
+        int identifier;
+
 
     private:
         bool vertical;
         bool horizontal;
-        float desiredDistance;
         bool distanceFixed;
 
 };

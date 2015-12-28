@@ -1,8 +1,9 @@
 #include "constrainedline.h"
 #include <QDebug>
 
-ConstrainedLine::ConstrainedLine(ConstrainedPoint* start, ConstrainedPoint* end)
+ConstrainedLine::ConstrainedLine(ConstrainedPoint* start, ConstrainedPoint* end, int identifier)
 {
+    this->identifier = identifier;
     this->horizontal = false;
     this->vertical = false;
     this->start = start;
@@ -38,12 +39,12 @@ bool ConstrainedLine::isDistanceFixed() {
     return this->distanceFixed;
 }
 
-ConstrainedLine* ConstrainedLine::setDesiredDistance(float distance) {
+ConstrainedLine* ConstrainedLine::setDesiredDistance(double distance) {
     this->distanceFixed = true;
     this->desiredDistance = distance;
     return this;
 }
 
-float ConstrainedLine::getDesiredDistance() {
+double ConstrainedLine::getDesiredDistance() {
     return this->desiredDistance;
 }
