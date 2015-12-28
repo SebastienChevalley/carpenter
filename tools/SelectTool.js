@@ -50,7 +50,7 @@ function SelectTool(context) {
     this.enableWidthFieldSubmit = function() {
         console.log("enableWidthFieldSubmit", this);
 
-        if(this.sketch.isScaleSet()) {
+        if(this.sketch.isMmPerPixelScaleSet()) {
             this.sketch.setDesiredDistance(this.selectedLine.identifier, parseFloat(this.fields.widthEdit.text))
         }
         else {

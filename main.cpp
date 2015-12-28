@@ -21,7 +21,7 @@ int main(int argc, char *argv[])
 
     //SketchConverter *pouet = new SketchConverter();
 
-    testnewtonsolver test;
+    //testnewtonsolver test;
     //TestTriangulate test2;
 
     return app.exec();

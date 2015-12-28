@@ -275,12 +275,13 @@ Item {
         console.log("store.scale", JSON.stringify(store.scale))
     }
 
-    function isScaleSet() {
+    function isMmPerPixelScaleSet() {
+        console.log("callin isMmPerPixelScaleSet");
         return store.scale.set === true;
     }
 
-    function getScale() {
-        if(this.isScaleSet()) {
+    function getMmPerPixelScale() {
+        if(this.isMmPerPixelScaleSet()) {
             return store.scale.mmPerPixel;
         }
         else {

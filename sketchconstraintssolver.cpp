@@ -1,13 +1,13 @@
 #include "sketchconstraintssolver.h"
 
 #include <QDebug>
+#include <QVariant>
 #include "opencv2/core/core.hpp"
 #include "opencv2/core/mat.hpp"
 #include "solve.h"
 using namespace cv;
 
-SketchConstraintsSolver::SketchConstraintsSolver(QObject *parent) : QObject(parent)
-{
+SketchConstraintsSolver::SketchConstraintsSolver(QObject *parent) : QObject(parent) {
 
 }
 
@@ -19,10 +19,45 @@ void SketchConstraintsSolver::setSketch(QObject *sketch) {
 
 bool SketchConstraintsSolver::solve() {
     this->solved = false;
-    qDebug() << "please solve";
     if(this->sketch == Q_NULLPTR) {
         qDebug() << "sketch is null";
+        return false;
     }
+
+    /*
+     *  get the mm/pixel scale
+     */
+    QVariant isScaleSet;
+    bool isIsMmPerPixelScaleSetCallWorks = QMetaObject::invokeMethod(
+                this->sketch,
+                "isMmPerPixelScaleSet",
+                Q_RETURN_ARG(QVariant, isScaleSet)
+    );
+
+    if(!isIsMmPerPixelScaleSetCallWorks) {
+        qDebug() << "cannot check if the scale is set";
+        return false;
+    }
+
+    if(!isScaleSet.toBool()) {
+        qDebug() << "cannot apply constraints without scale";
+        return false;
+    }
+
+    QVariant mmPerPixelScale;
+    bool isGetMmPerPixelScaleCallWorks = QMetaObject::invokeMethod(
+                this->sketch,
+                "getMmPerPixelScale",
+                Q_RETURN_ARG(QVariant, mmPerPixelScale)
+    );
+
+    if(!isGetMmPerPixelScaleCallWorks) {
+        qDebug() << "cannot retrieve the scale";
+        return false;
+    }
+
+    double pixelPerMmScale = 1.0 / mmPerPixelScale.toDouble();
+
 
     // clean old computation
     this->points.clear();
@@ -95,7 +130,9 @@ bool SketchConstraintsSolver::solve() {
         this->lines << cLine1 << cLine2;
     }
 
-    // DFS to solve
+    /*
+     * Solve vertical and horizontal constraints
+     */
     QSet<ConstrainedPoint*> visited;
     QQueue<ConstrainedPoint*> waitingList;
 
@@ -104,19 +141,13 @@ bool SketchConstraintsSolver::solve() {
 
     int visitedEdge = 0;
     int appliedConstraints = 0;
-    while(!waitingList.isEmpty()/* || visited.size() != this->points.size()*/) {
+    while(!waitingList.isEmpty()) {
         ConstrainedPoint* current;
 
-        //if(!waitingList.empty()) {
-            current = waitingList.dequeue();
-        //}
-        /*else {
-            QSet<ConstrainedPoint*> nonVisited = QSet<ConstrainedPoint*>::fromList(this->points.values());
-            nonVisited -= visited;
+        current = waitingList.dequeue();
 
-            current = nonVisited.toList().first();
-        }*/
         qDebug() << "current: " << *(current->x.data()) << "," << *(current->y.data());
+
         visited += current;
 
         foreach(ConstrainedLine* line, this->lines) {
@@ -124,12 +155,9 @@ bool SketchConstraintsSolver::solve() {
                 waitingList.enqueue(line->end);
             }
 
-            //qDebug() << "line->end == current" << (line->end == current) << ", visited.contains" << (visited.contains(line->start));
-
             if(line->end == current && visited.contains(line->start)) {
                 visitedEdge++;
 
-                //this->lines.removeAll(line);
 
                 // it's the first point thus the origin
                 if(first) {
@@ -160,17 +188,16 @@ bool SketchConstraintsSolver::solve() {
     /*
      * apply distance constraints
      *
-     * 1. separate the parameters between free and non-free one
-     * 2. collect constraints objects
+     * 1. separate the parameters between free and non-free one and create
+     *    point datastructure for the solver
+     * 2. count the constraints needed
+     * 3. create constraints datastructure
+     * 4.
      */
-
-
-    // FIXME VLA length
     QList<double*> parameters;
-    SketchSolvePoint solvePoints[100];
-    Line solveLines[100];
-    Constraint constraints[100];
-    double *pparameters[parameters.size()];
+    SketchSolvePoint solvePoints[this->points.size()];
+    Line solveLines[this->lines.size()];
+    int constraintsCount = 0;
     QMap<QString, int> identifierToSolvePointsIndex;
 
     int i = 0;
@@ -189,35 +216,35 @@ bool SketchConstraintsSolver::solve() {
         i++;
     }
 
-    int constraintsCount = 0;
+    double* pparameters[parameters.size()];
+
     QSet<int> identifiersSeen;
 
     foreach(ConstrainedLine* line, this->lines) {
         if(line->isDistanceFixed() && !identifiersSeen.contains(line->identifier)) {
             constraintsCount++;
-            identifiersSeen.insert(line->identifier);
+            identifiersSeen += line->identifier;
         }
     }
 
+    Constraint constraints[constraintsCount];
+
     identifiersSeen.clear();
+
+    QList<double> lengthParameters;
 
     i = 0;
     foreach(ConstrainedLine* line, this->lines) {
         if(line->isDistanceFixed() && !identifiersSeen.contains(line->identifier)) {
-            qDebug() << "index for p1 identifier["
-                     << line->start->identifier()
-                     << "] = "
-                     << identifierToSolvePointsIndex[line->start->identifier()]
-                     << ":";
+            identifiersSeen += line->identifier;
 
-            auto honk = solvePoints[identifierToSolvePointsIndex[line->start->identifier()]];
-            solveLines[i].p1 = honk;
+            solveLines[i].p1 = solvePoints[identifierToSolvePointsIndex[line->start->identifier()]];
             solveLines[i].p2 = solvePoints[identifierToSolvePointsIndex[line->end->identifier()]];
 
             constraints[i].line1 = solveLines[i];
+            lengthParameters += line->desiredDistance * pixelPerMmScale;
             constraints[i].type = lineLength;
-            // ask for visibility
-            constraints[i].parameter = &line->desiredDistance;
+            constraints[i].parameter = &lengthParameters.last();
 
             i++;
         }
@@ -233,7 +260,6 @@ bool SketchConstraintsSolver::solve() {
     qDebug() << "----------------\n";
     qDebug() << "constraints: " << constraintsCount;
     qDebug() << "parameters: " << parameters.size();
-
 
     int result = ::solve(pparameters, parameters.size(), constraints, constraintsCount, fine);
 
