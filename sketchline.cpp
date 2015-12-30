@@ -9,14 +9,27 @@
 SketchLine::SketchLine(QObject* line, QMap<QObject*, QList<QObject*>> linesPerPoint) {
     QVariant maybePointer = line->property("pointer");
     QVariant maybeStart = line->property("start");
+    QVariant maybeStartPoint = line->property("startPoint");
+    QVariant maybeEndPoint = line->property("endPoint");
 
-    if(!maybePointer.isValid() || !maybePointer.convert(QVariant::Vector2D)) {
-        qDebug() << "SketchLine can't convert pointer";
+    if(!maybePointer.isValid() || !maybePointer.canConvert<QVector2D>()) {
+        this->setErrorMessage("Line doesn't contain a pointer");
         return;
     }
 
-    if(!maybeStart.isValid() || !maybeStart.convert(QVariant::Vector2D)) {
-        qDebug() << "SketchLine can't convert start";
+    if(!maybeStart.isValid() || !maybeStart.canConvert<QVector2D>()) {
+        this->setErrorMessage("Line doesn't contain a start vector");
+        return;
+    }
+
+    if(!maybeStartPoint.isValid() || !maybeStartPoint.canConvert<QObject*>()) {
+        this->setErrorMessage("Line doesn't contain a start point");
+        return;
+    }
+
+    if(!maybeEndPoint.isValid() || !maybeEndPoint.canConvert<QObject*>()) {
+        qDebug() << "endPoint " << "isValid:" << maybeEndPoint.isValid();
+        this->setErrorMessage("Line doesn't contain an ending point");
         return;
     }
 
@@ -25,6 +38,9 @@ SketchLine::SketchLine(QObject* line, QMap<QObject*, QList<QObject*>> linesPerPo
     QVector2D horizon = QVector2D(0,1);
     QVector2D start = maybeStart.value<QVector2D>();
 
+    QObject* startPoint = maybeStartPoint.value<QObject*>();
+    QObject* endPoint = maybeEndPoint.value<QObject*>();
+
     float angle = qRadiansToDegrees(qAtan2(pointer.y(),pointer.x()) - qAtan2(horizon.y(),horizon.x()));
     //qDebug() << "angle" << angle;
 
@@ -32,8 +48,8 @@ SketchLine::SketchLine(QObject* line, QMap<QObject*, QList<QObject*>> linesPerPo
     float length = pointer.length();
 
 
-    bool cutStart = linesPerPoint.contains(line->property("startPoint").value<QObject*>());
-    bool cutEnd = linesPerPoint.contains(line->property("endPoint").value<QObject*>());
+    bool cutStart = linesPerPoint.contains(startPoint);
+    bool cutEnd = linesPerPoint.contains(endPoint);
 
     if(cutStart) {
         start += direction * SketchLine::edgeShortcut;
@@ -62,15 +78,12 @@ SketchLine::SketchLine(QObject* line, QMap<QObject*, QList<QObject*>> linesPerPo
     translate.setW(1);
 
     transform.setColumn(3, translate);
-    //transform.translate(start.toVector3D());
 
-    for(int i = 0; i < 8; i++)
-    {
+    for(int i = 0; i < 8; i++) {
         allVertices.replace(i, transform * allVertices.at(i));
-        //allVertices[i] += start.toVector3D();
 
         vertices << allVertices[i];
-        //qDebug() << "insert vertex" << allVertices[i];
+        qDebug() << "insert vertex" << allVertices[i];
     }
 
     int facesIndex[36] = {
@@ -92,10 +105,12 @@ SketchLine::SketchLine(QObject* line, QMap<QObject*, QList<QObject*>> linesPerPo
         QList<int> face;
         face << facesIndex[i*3] << facesIndex[i*3+1] << facesIndex[i*3+2];
         faces << face;
-        //qDebug() << "insert faces" << QVector3D(facesIndex[i], facesIndex[i+1], facesIndex[i+2]);
+        qDebug() << "insert faces" << QVector3D(facesIndex[i], facesIndex[i+1], facesIndex[i+2]);
     }
 
-    //qDebug()<< "#faces" << faces.size();
+    qDebug()<< "#faces" << faces.size();
+
+    this->setValid(true);
 }
 
 QList<QVector3D> SketchLine::getVertices() {

@@ -7,26 +7,16 @@ import '.'
 Rectangle {
 
     id: menu
-    width: 250
-
+    width: childrenRect.width
     z: 100
     height: menuItems.count * itemHeight
-    color: "#555555"
+
 
     property real itemHeight: 64
 
-    state: "hidden"
-
-    states: [
-        State {
-            name: "hidden"
-            PropertyChanges { target: menu; y: - menuBar.height - menu.height }
-        },
-        State {
-            name: "visible"
-            PropertyChanges { target: menu; y: menuBar.height }
-        }
-    ]
+    anchors.left: mainForm.left
+    anchors.leftMargin: 10
+    anchors.verticalCenter: mainForm.verticalCenter
 
     function toggleState() {
         console.log("change state")
@@ -43,34 +33,31 @@ Rectangle {
     }
 
     ListView {
-        width: menu.width
         height: menu.height
+        width:50
+
         model: menuItems
-        delegate: RowLayout {
-            anchors.margins: 10
-            height: menu.itemHeight
-            spacing: 5
+        delegate: Rectangle {
+            width: childrenRect.width
+            height: childrenRect.height
+            color: isToolSelected(tool) ? Settings.paletteHighlight : Settings.palette;
 
             function isToolSelected(tool) {
-                return mainForm.state === tool ? Settings.selectedToolColor : Settings.toolColor;
+                return mainForm.state === tool;
             }
 
-            property var labelColor : isToolSelected(tool)
-            property var labelFontSize : 14
+            property color labelColor : isToolSelected(tool) ? Settings.selectedToolColor : Settings.toolColor
+            property int labelFontSize : 24
 
             Label {
                 text: icon
                 font.family: fontName
-                height:menu.itemHeight
-                width: height
                 font.pointSize: labelFontSize
                 color: labelColor
-            }
-            Label {
-                Layout.fillWidth: true
-                text: name
-                font.pointSize: labelFontSize
-                color: labelColor
+                height: menu.itemHeight
+                width: menu.width
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
             }
 
             MouseArea {

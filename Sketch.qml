@@ -10,6 +10,7 @@ import "qrc:/lib/lib/lodash.js" as Lodash
 Item {
     id: sketch;
 
+    property var settings: Settings
     property real identifier: 0;
 
     property var _;
@@ -37,15 +38,11 @@ Item {
         property var insertLine : Qt.createComponent("InsertLine.qml");
     }
 
-    property SketchConstraintsSolver constraintsSolver: SketchConstraintsSolver { }
-
     Component.onCompleted: {
 
         this._ = Lodash.lodash(this);
         console.log(this._)
         console.log(_.assign)
-
-        constraintsSolver.setSketch(this);
     }
 
     /*
@@ -123,8 +120,8 @@ Item {
                 return store;
             }
             else {
-                var newPoint = createPoint(to, id)
-                var newPoints = [].concat(store.points.slice(0, indexOfPoint), [newPoint], store.points.slice(indexOfPoint + 1, store.points.length))
+                var newPoint = createPoint(to, id, store)
+                var newPoints = updateItemInCollection(store.points, indexOfPoint, newPoint);
                 pointMoved(id, to)
 
                 // we should update the line too
@@ -192,6 +189,10 @@ Item {
 
     signal removeLine(real identifier)
     signal lineRemoved(real identifier)
+
+    onRemoveLine: {
+        updateStore(removePointReducer(store, identifier))
+    }
 
     function removeLineReducer(store, identifier) {
         if(!lineExistsById(identifier, store)) {
@@ -272,16 +273,14 @@ Item {
     onSetInitialScale: {
         console.log("received setInitialScale(", line, mmLength, ")")
         updateStore(_.assign({}, store, { 'scale' : { 'set': true, 'mmPerPixel': mmLength / line } }))
-        console.log("store.scale", JSON.stringify(store.scale))
     }
 
     function isMmPerPixelScaleSet() {
-        console.log("callin isMmPerPixelScaleSet");
         return store.scale.set === true;
     }
 
     function getMmPerPixelScale() {
-        if(this.isMmPerPixelScaleSet()) {
+        if(sketch.isMmPerPixelScaleSet()) {
             return store.scale.mmPerPixel;
         }
         else {
@@ -311,6 +310,97 @@ Item {
         store.lines[index].desiredDistance = desiredLength;
     }
 
+    signal removeAtPosition(vector2d position);
+
+    onRemoveAtPosition: {
+        var replaceItemByIdentifier = function(figureType) {
+            return function(x) {
+                return {
+                    'item': x[figureType],
+                    'identifier':  x[figureType].identifier,
+                    'figureType': figureType
+                };
+            }
+        };
+
+        var lineCandidates = nearestLines(position, true)
+            .map(replaceItemByIdentifier("line"));
+        var pointCandidates = nearestPoints(position, undefined, true)
+            .map(replaceItemByIdentifier("point"));
+
+        // tricks to get the first item of each array or an empty
+        // array if the array was empty so the resulting array's
+        // length can only be [0,2].
+        var candidates = [].concat(
+                    lineCandidates.slice(0,1),
+                    pointCandidates.slice(0,1)
+            )
+            .sort(compareForSortByDistance);
+
+        console.log("candidates", candidates);
+
+        if(candidates.length !== 0) {
+            var candidate = candidates[0];
+            var identifier = candidate.item.identifier;
+            var newStore = store;
+
+            switch(candidate.figureType) {
+            case 'line':
+                newStore = removeLineReducer(store, identifier);
+                break;
+            case 'point':
+                // need to remove related lines too
+                linesRelatedToId(identifier).forEach(function(line) {
+                    newStore = removeLineReducer(newStore, line.identifier);
+                })
+
+                newStore = removePointReducer(newStore, identifier);
+                break;
+            default:
+                console.error("unknown figure type")
+            }
+
+            updateStore(newStore)
+        }
+    }
+
+    signal setPointReaction(string axis, bool value, real identifier)
+    signal pointReactionUpdated(string key, bool value, real identifier)
+
+    onSetPointReaction: {
+        console.log("setPointReaction(axis: " + axis + ", value: " + value + ", identifier: " + identifier + ")")
+        var indexOf = indexOfPoint(store, identifier);
+
+        if(indexOf === -1) {
+            console.error("point cannot be found in sketch");
+            return;
+        }
+
+        if(axis !== "x" && axis !== "y" && axis !== "z") {
+            console.error("unknown axis");
+            return;
+        }
+
+        var oldPoint = store.points[indexOf];
+        var key = "m" + axis;
+
+        if(oldPoint[key] === value) {
+            console.log("nothing to update");
+            return;
+        }
+
+        var newPoint = createPoint(oldPoint.start, identifier, store);
+        newPoint[key] = value;
+
+        var newPoints = updateItemInCollection(store.points, indexOf, newPoint);
+        var newStore = updatePointInLines(store, identifier, newPoint);
+
+        console.log(["mx",newPoint.mx, "my" , newPoint.my, "mz" , newPoint.mz ])
+
+        updateStore(_.assign({}, newStore, { 'points': newPoints }));
+        pointReactionUpdated(key, value, identifier);
+    }
+
     /*
      * Comparator
      */
@@ -334,25 +424,101 @@ Item {
            || (lineEnd   === idStart && lineStart === idStart)
     }
 
+    function compareForSortByDistance(a, b) {
+        if(a.distance > b.distance) return 1;
+        else if(a.distance < b.distance) return -1;
+        else return 0;
+    }
+
     /**
       * @var position: vector2d
+      * @return Point[]
       */
-    function nearestPoints(position, collection) {
+    function nearestPoints(position, collection, keepPosition) {
         if(collection === null || collection === undefined) {
             collection = store.points;
         }
 
+        keepPosition = keepPosition === undefined ? false : keepPosition;
+
         //console.log("search on", collection, "near", position)
 
-        return collection
+        var points = collection
             .map(function(x) { return { 'point' : x, 'distance' : x.distanceTo(position) } })
             .filter(function(x) { return x.distance < Settings.minimalPointDistance })
-            .sort(function(a, b) {
-                if(a.distance > b.distance) return 1;
-                else if(a.distance < b.distance) return -1;
-                else return 0;
-            })
-            .map(function(x) { return x.point });
+            .sort(compareForSortByDistance)
+
+        if(!keepPosition) {
+            points = points.map(function(x) { return x.point });
+        }
+
+        return points;
+    }
+
+    /*
+     * Line distance related functions
+     */
+    function square(x) {
+        return x * x
+    }
+
+    function squareDistance(v, w) {
+        return square(v.x - w.x) + square(v.y - w.y);
+    }
+
+    function distanceToSegmentSquared(point, start, end) {
+        // square distance between the endpoints of the segment
+        // if the endpoints are at the same position (=> l == 0),
+        // we can only compute the distance between two points
+        var l2 = squareDistance(start, end);
+        if (l2 === 0) {
+            return squareDistance(point, start);
+        }
+
+        // now, we're trying to find if projection of vector
+        // (start -> point) falls between (t in [0,1]) the two points to
+        // compute an orthogonal distance (like distance between a point
+        // and line) or the distance between two points
+        var t = (
+                      (point.x - start.x) * (end.x - start.x)
+                    + (point.y - start.y) * (end.y - start.y)
+                 ) / l2;
+
+        if (t < 0) {
+            return squareDistance(point, start);
+        }
+        if (t > 1) {
+            return squareDistance(point, end);
+        }
+
+        var projectionPoint = Qt.vector2d(
+            start.x + t * (end.x - start.x),
+            start.y + t * (end.y - start.y)
+        );
+
+        return squareDistance(point, projectionPoint);
+    }
+
+    function distanceToSegment(point, start, end) {
+        return Math.sqrt(distanceToSegmentSquared(point, start, end));
+    }
+
+    /**
+      * @return Line[]
+      */
+    function nearestLines(position, keepPosition) {
+        keepPosition = keepPosition === undefined ? false : keepPosition;
+
+        var lines = store.lines
+            .map(function(x) { return { 'line': x, 'distance': distanceToSegment(position, x.startPoint.start, x.endPoint.start) } })
+            .filter(function(x) { return x.distance < Settings.minimalPointDistance })
+            .sort(compareForSortByDistance);
+
+        if(!keepPosition) {
+            lines = lines.map(function(x) { return x.line });
+        }
+
+        return lines;
     }
 
     function linesRelatedToPosition(vector, store) {
@@ -365,10 +531,6 @@ Item {
         return store.lines.filter(function(line) { return line.startPoint.identifier === id || line.endPoint.identifier === id })
     }
 
-    /**
-      * @param start vector2d
-      * @param end vector2d
-      */
     function lineExists(idStart, idEnd, providedStore) {
         if(providedStore === undefined || providedStore === null) {
             providedStore = store;
@@ -467,28 +629,46 @@ Item {
         return _.assign({}, store, { 'lines': updatedLines })
     }
 
+    function updateItemInCollection(collection, indexOf, newItem) {
+        return [].concat(
+            collection.slice(0, indexOf),
+            [newItem],
+            collection.slice(indexOf + 1, collection.length)
+        );
+    }
+
     // Qt component creation
-    function createPoint(start, id) {
+    function createPoint(start, id, providedStore) {
+        var isNewPoint = false;
         if(id === undefined) {
+            isNewPoint = true;
             id = identifier++;
             console.log("NEW IDENTIFIER : Point", id)
         }
+        else {
+            providedStore = providedStore || store
+            var oldPoint = providedStore.points[indexOfPoint(providedStore, id)];
+        }
 
         var newPoint = components.point.createObject(parent, {
-                                                         'start': start,
-                                                         'identifier': id })
+             'start': start,
+             'identifier': id,
+             'mx' : isNewPoint ? false : oldPoint.mx,
+             'my' : isNewPoint ? false : oldPoint.my,
+             'mz' : isNewPoint ? false : oldPoint.mz
+        })
         return newPoint;
     }
 
     function createLine(startPoint, endPoint, id, providedStore) {
-        var newLine = false;
+        var isNewLine = false;
         if(id === undefined) {
-            newLine = true;
+            isNewLine = true;
             id = identifier++;
             console.log("NEW IDENTIFIER : Line", id)
         }
         else {
-            var providedStore = providedStore || store
+            providedStore = providedStore || store
             var oldLine = providedStore.lines[indexOfLine(providedStore, id)]
         }
 
@@ -496,10 +676,10 @@ Item {
             'startPoint': startPoint,
             'endPoint': endPoint,
             'identifier': id,
-            'verticallyConstrained': newLine ? false : oldLine.verticallyConstrained,
-            'horizontallyConstrained': newLine ? false: oldLine.horizontallyConstrained,
-            'distanceFixed': newLine ? false : oldLine.distanceFixed,
-            'desiredDistance': newLine ? 0 : oldLine.desiredDistance
+            'verticallyConstrained': isNewLine ? false : oldLine.verticallyConstrained,
+            'horizontallyConstrained': isNewLine ? false: oldLine.horizontallyConstrained,
+            'distanceFixed': isNewLine ? false : oldLine.distanceFixed,
+            'desiredDistance': isNewLine ? 0 : oldLine.desiredDistance
         })
         return newLine;
     }

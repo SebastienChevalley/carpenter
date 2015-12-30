@@ -18,6 +18,11 @@
         <file>IntermediatePoint.qml</file>
         <file>Sketch.qml</file>
         <file>main.cpp</file>
+        <file>CaptureImage.qml</file>
+        <file>RoundedButton.qml</file>
+        <file>MessageBox.qml</file>
+        <file>Ruler.qml</file>
+        <file>TogglableButton.qml</file>
     </qresource>
     <qresource prefix="/tools">
         <file>tools/MoveTool.js</file>

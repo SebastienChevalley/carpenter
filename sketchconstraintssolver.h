@@ -7,6 +7,7 @@
 #include <QVector2D>
 #include <QList>
 #include <QHash>
+#include <QVariant>
 #include <QVariantMap>
 #include <QVariantList>
 #include <QSet>
@@ -15,20 +16,25 @@
 #include <QMetaObject>
 #include <functional>
 
+
 class SketchConstraintsSolver : public QObject
 {
     Q_OBJECT
+
+    Q_PROPERTY(QObject* sketch READ getSketch WRITE setSketch)
+
     public:
         explicit SketchConstraintsSolver(QObject *parent = 0);
 
     public slots:
-        bool solve();
-        void setSketch(QObject *sketch);
+        QVariant solve();
         void applyOnSketch();
+        void setSketch(QObject *sketch);
+        QObject* getSketch();
 
     private:
         bool solved;
-        QObject *sketch;
+        QObject* sketch;
         QVector2D origin;
         QHash<int, ConstrainedPoint*> points;
         QList<ConstrainedLine*> lines;

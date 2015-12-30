@@ -46,7 +46,7 @@ DeleteTool.prototype = Object.create(Tool.prototype);
 DeleteTool.prototype.constructor = DeleteTool;
 
 DeleteTool.prototype.onPressed = function() {
-    if(this.longPressTimer !== null) {
+    /*if(this.longPressTimer !== null) {
         this.longPressTimer.start()
     }
     else {
@@ -56,19 +56,18 @@ DeleteTool.prototype.onPressed = function() {
         this.longPressTimer = this.timer(function() {
             current.isLongPressed = true;
         }, 1000, false);
-    }
+    }*/
+    this.sketch.removeAtPosition(this.mouseArea.getMousePosition());
 }
 
-DeleteTool.prototype.onPositionChanged = function() {
-
-}
+DeleteTool.prototype.onPositionChanged = DeleteTool.prototype.onPressed
 
 DeleteTool.prototype.onReleased = function() {
-    if(this.longPressTimer !== null) {
+    /*if(this.longPressTimer !== null) {
         this.longPressTimer.stop();
     }
 
-    this.isLongPressed = false;
+    this.isLongPressed = false;*/
 }
 
 DeleteTool.prototype.onEnterTool = function() {

@@ -7,7 +7,7 @@ SketchJoint::SketchJoint(QObject* rawPoint, QList<QObject*> lines) {
     /**
       * Precondition : note that this is only possible to compute
       * if the angle between each line is greater than
-      * Arcsin(SketchLine::radius/SketchLine::edgeShortcut) otherwise
+      * 2*Arctan(SketchLine::radius/SketchLine::edgeShortcut) otherwise
       * we would need to cut more than SketchLine::edgeShortcut
       *
       * 1) Sort the line with respect to angle from the rawPoint center
@@ -59,31 +59,64 @@ SketchJoint::SketchJoint(QObject* rawPoint, QList<QObject*> lines) {
     qDebug() << "edgeShortcut" << SketchLine::edgeShortcut;
     qDebug() << "radius" << SketchLine::radius;
 
-    QVector2D point = rawPoint->property("start").value<QVector2D>();
+    QVariant startProperty = rawPoint->property("start");
+
+    if(!startProperty.isValid() || !startProperty.canConvert<QVector2D>()) {
+        this->setErrorMessage("Cannot find origin in Point");
+        return;
+    }
+
+    QVector2D point = startProperty.value<QVector2D>();
 
     QVector2D horizon = QVector2D(1,0);
     QList<QVector2D> externalLines;
 
     // Nothing to do if no more than one line
     if(lines.size() <= 1) {
+        this->setValid(true);
         return;
     }
 
     foreach(QObject* line, lines) {
-        QVector2D pointer = line->property("pointer").value<QVector2D>().normalized();
-        if(line->property("endPoint").value<QObject*>() == rawPoint) {
+        // ----------------------------------------------------------------------------------
+        // Cast and properties check
+
+        QVariant pointerProperty = line->property("pointer");
+        if(!pointerProperty.isValid() || !pointerProperty.canConvert<QVector2D>()) {
+            this->setErrorMessage("Cannot find or convert pointer in Line");
+            return;
+        }
+
+        QVariant endPointProperty = line->property("endPoint");
+        if(!endPointProperty.isValid() || !endPointProperty.canConvert<QObject*>()) {
+            this->setErrorMessage("Cannot find or convert endPoint in Line");
+            return;
+        }
+
+        QVariant identifierProperty = line->property("identifier");
+        if(!identifierProperty.isValid() || !identifierProperty.canConvert<int>()) {
+            this->setErrorMessage("Cannot find or convert identifier in Line");
+            return;
+        }
+
+        int identifier = identifierProperty.toInt();
+
+        // ----------------------------------------------------------------------------------
+
+        QVector2D pointer = pointerProperty.value<QVector2D>().normalized();
+        if(endPointProperty.value<QObject*>() == rawPoint) {
             //qDebug() << "return the pointer";
             pointer *= -1.0f;
         }
 
-        float angle = qRadiansToDegrees(qAtan2(pointer.y(),pointer.x()));
+        double angle = qRadiansToDegrees(qAtan2(pointer.y(),pointer.x()));
         // want angle from 0 to 360
         if(angle < 0) {
             angle = 360 + angle;
         }
 
         line->setProperty("sortAngle", angle);
-        qDebug() << "line #" << line->property("identifier").toInt() << ":" << angle;
+        qDebug() << "line #" << identifier << ":" << angle;
 
         /*
          * 2) compute the two points
@@ -98,7 +131,7 @@ SketchJoint::SketchJoint(QObject* rawPoint, QList<QObject*> lines) {
         QVector2D thirdPoint = point - (normal * SketchLine::radius);
         QVector2D fourthPoint = point + (pointer * SketchLine::edgeShortcut) - (normal * SketchLine::radius);
 
-        qDebug() << "#:" <<  line->property("identifier").toInt();
+        qDebug() << "#:" <<  identifier;
 
         qDebug() << "  -> origin" << point.x() << point.y() <<  "";
         qDebug() << "  -> normal" << normal <<  "";
@@ -119,8 +152,8 @@ SketchJoint::SketchJoint(QObject* rawPoint, QList<QObject*> lines) {
     }
 
     std::sort(lines.begin(), lines.end(), [](const QObject* line1, const QObject* line2) -> bool {
-        float angle1 = line1->property("sortAngle").toFloat();
-        float angle2 = line2->property("sortAngle").toFloat();
+        double angle1 = line1->property("sortAngle").toDouble();
+        double angle2 = line2->property("sortAngle").toDouble();
         return angle1 < angle2;
     });
 
@@ -131,10 +164,11 @@ SketchJoint::SketchJoint(QObject* rawPoint, QList<QObject*> lines) {
         i++;
     }
 
-    // List of vertices of the joint form
+    // List of vertices of the joint mesh
     QList<QVector2D> vertices;
 
-    float preconditionAngle = qAsin(SketchLine::radius/SketchLine::edgeShortcut);
+    double preconditionAngle = qRadiansToDegrees(2*qAtan(SketchLine::radius/SketchLine::edgeShortcut));
+    qDebug() << "preconditionAngle: " << preconditionAngle;
 
     for(int lineIndex = 0; lineIndex < lines.size(); lineIndex++) {
 
@@ -151,14 +185,18 @@ SketchJoint::SketchJoint(QObject* rawPoint, QList<QObject*> lines) {
         /*
          * Before computing, we check for the precondition on angle
          */
-        float deltaAngle = line2->property("sortAngle").toFloat() - line1->property("sortAngle").toFloat();
+        double deltaAngle = line2->property("sortAngle").toDouble() - line1->property("sortAngle").toDouble();
+
 
         if(deltaAngle < 0) {
             deltaAngle += 360;
         }
 
+        qDebug() << "deltaAngle: " << deltaAngle;
+
+
         if(deltaAngle < preconditionAngle) {
-            qDebug("Impossible to compute the joint because bean are too closer in term of angle");
+            this->setErrorMessage("Impossible to compute the joint two lines have too small angle between them");
             return;
         }
 
@@ -168,37 +206,37 @@ SketchJoint::SketchJoint(QObject* rawPoint, QList<QObject*> lines) {
         QVector2D C = line2->property("firstPoint").value<QVector2D>();
         QVector2D D = line2->property("secondPoint").value<QVector2D>();
 
-        float x1 = A.x();
-        float y1 = A.y();
+        double x1 = A.x();
+        double y1 = A.y();
 
-        float x2 = B.x();
-        float y2 = B.y();
+        double x2 = B.x();
+        double y2 = B.y();
 
-        float x3 = C.x();
-        float y3 = C.y();
+        double x3 = C.x();
+        double y3 = C.y();
 
-        float x4 = D.x();
-        float y4 = D.y();
+        double x4 = D.x();
+        double y4 = D.y();
 
-        float x12 = x1 - x2;
-        float x34 = x3 - x4;
-        float y12 = y1 - y2;
-        float y34 = y3 - y4;
+        double x12 = x1 - x2;
+        double x34 = x3 - x4;
+        double y12 = y1 - y2;
+        double y34 = y3 - y4;
 
-        float c = x12 * y34 - y12 * x34;
+        double c = x12 * y34 - y12 * x34;
 
+        // No intersection
         if (fabs(c) < 0.01) {
-          // No intersection
-          qDebug() << "no Intersection found";
+          this->setErrorMessage("Cannot build a joint because of an intersection");
           return;
         }
 
         // Intersection
-        float a = x1 * y2 - y1 * x2;
-        float b = x3 * y4 - y3 * x4;
+        double a = x1 * y2 - y1 * x2;
+        double b = x3 * y4 - y3 * x4;
 
-        float x = (a * x34 - b * x12) / c;
-        float y = (a * y34 - b * y12) / c;
+        double x = (a * x34 - b * x12) / c;
+        double y = (a * y34 - b * y12) / c;
 
         QVector2D intersection = QVector2D(x, y);
 
@@ -240,16 +278,16 @@ SketchJoint::SketchJoint(QObject* rawPoint, QList<QObject*> lines) {
 
     qDebug() << "---------\n";
 
-
+    this->setValid(true);
 }
 
 QList<QVector3D> SketchJoint::getVertices() {
-    qDebug() << "get vertices" << vertices;
+    //qDebug() << "get vertices" << vertices;
     return vertices;
 }
 
 QList<QList<int>> SketchJoint::getFaces() {
-    qDebug() << "get faces" << faces;
+    //qDebug() << "get faces" << faces;
     return faces;
 }
 

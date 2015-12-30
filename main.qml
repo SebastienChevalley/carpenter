@@ -3,6 +3,9 @@ import QtQuick.Window 2.2
 import QtQuick.Layouts 1.2
 import QtQuick.Controls 1.4
 import QtQuick.Controls.Styles 1.4
+import QtMultimedia 5.5
+import QtGraphicalEffects 1.0
+
 import "."
 import "qrc:/tools/tools/SelectTool.js" as SelectTool
 import "qrc:/tools/tools/InsertTool.js" as InsertTool
@@ -11,6 +14,8 @@ import "qrc:/tools/tools/DeleteTool.js" as DeleteTool
 
 import "qrc:/lib/lib/lodash.js" as Lodash
 import SketchConverter 1.0
+import SketchConstraintsSolver 1.0
+import SketchLolExporter 1.0
 
 
 Window {
@@ -22,6 +27,9 @@ Window {
     MainForm {
         id: mainForm
         anchors.fill: parent
+
+        property var captureImage : Qt.createComponent("CaptureImage.qml");
+        property var captureImagePanel : null;
 
         states: [
             State {
@@ -68,7 +76,6 @@ Window {
         property var _;
 
         Component.onCompleted: {
-
             this._ = Lodash.lodash(this);
         }
 
@@ -78,8 +85,6 @@ Window {
 
         FontLoader { source: "fonts/Material-Design-Iconic-Font.ttf" }
         FontLoader { source: "fonts/FontAwesome.otf" }
-
-        MenuItem{ id: menuItems }
 
         function toolItem(name) {
             return name.charAt(0).toLowerCase() + name.slice(1);
@@ -91,17 +96,35 @@ Window {
                 mouseArea[toolItem(previousTool)].onLeaveTool();
                 mouseArea[toolItem(newTool)].onEnterTool();
 
-                menu.toggleState();
+                message.displayInfoMessage("Selected tool: " + newTool);
 
                 currentTool = newTool
             }
         }
 
-        ToolsMenu {
-            anchors.right: mainLayout.right
-            id: menu
-
+        function displayCameraPanel() {
+            if(captureImagePanel == null) {
+                captureImagePanel = captureImage.createObject(mainForm, {});
+            }
+            else {
+                captureImagePanel.visible = true;
+            }
+            mouseArea.enabled = false;
         }
+
+        function hideCameraPanel() {
+            mouseArea.enabled = true
+            captureImagePanel.visible = false
+        }
+
+        function setBackgroundImage(path) {
+            console.log("setBackgroundPath:", path)
+            backgroundImage.source = path;
+        }
+
+        MenuItem{ id: menuItems }
+        MessageBox { id: message; }
+        ToolsMenu { id: menu }
 
         ColumnLayout {
             id: mainLayout
@@ -118,26 +141,6 @@ Window {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
 
-                Button {
-                    text:"Export"
-                    anchors.bottom: parent.bottom
-                    anchors.bottomMargin: 10
-                    anchors.right: parent.right
-                    anchors.rightMargin: 10
-                    z: 100
-                    onClicked: {
-                        //mouseArea.converter.exportToFile(sketch, "./output.dae");
-                        mouseArea.sketch.constraintsSolver.solve()
-                        if(mouseArea.sketch.constraintsSolver.solve()) {
-                            mouseArea.sketch.constraintsSolver.applyOnSketch();
-                            console.log("SKETCH SOLVER: found a solution")
-                        }
-                        else {
-                            console.log("SKETCH SOLVER: fail.")
-                        }
-                    }
-                }
-
                 Label {
                     text: "First, you should set the scale by selecting an item, and defines its length"
                     z:100
@@ -148,14 +151,65 @@ Window {
                     id: helpTip
                 }
 
+                Ruler { id: ruler }
+
+                Rectangle {
+                    id: pointContextMenu
+                    width: childrenRect.width + 10
+                    height: childrenRect.height
+                    z: 200
+                    radius: 5
+                    color: Qt.rgba(Settings.palette.r, Settings.palette.g, Settings.palette.b, 0.8)
+                    visible: false
+
+                    property Item mx: mx
+                    property Item my: my
+                    property Item mz: mz
+
+                    RowLayout {
+                        x: 5
+                        spacing: 0
+
+                        Button {
+                            id: mx
+                            text: "x"
+                            style: TogglableButton { }
+                            onClicked: {
+                                checked = !checked
+                                sketch.setPointReaction("x", checked, mouseArea.selectTool.selectedItem.identifier);
+                            }
+                        }
+                        Button {
+                            id: my
+                            text: "y"
+                            style: TogglableButton { }
+                            onClicked: {
+                                checked = !checked
+                                sketch.setPointReaction("y", checked, mouseArea.selectTool.selectedItem.identifier);
+                            }
+                        }
+                        Button {
+                            id: mz
+                            text: "z"
+                            style: TogglableButton { }
+                            onClicked: {
+                                checked = !checked
+                                sketch.setPointReaction("z", checked, mouseArea.selectTool.selectedItem.identifier);
+                            }
+                        }
+                    }
+                }
+
+                Image {
+                    id: backgroundImage
+                    anchors.fill: parent
+                    fillMode: Image.PreserveAspectCrop
+                    opacity: 0.5
+
+                }
+
                 MouseArea {
                     id: mouseArea
-
-                    property InsertPoint startingPoint
-                    property InsertPoint endingPoint
-                    property InsertPoint movingPoint
-
-                    property InsertLine insertLine
 
                     property var points: Object.create(Object.prototype)
                     property var lines: Object.create(Object.prototype)
@@ -167,6 +221,7 @@ Window {
                             mouseArea.points[identifier] = mouseArea.createPointUi(point, identifier);
                         }
                         onPointRemoved: {
+                            console.log("pointRemoved(id: ", identifier, ")")
                             mouseArea.points[identifier].destroy();
                             mouseArea.points = _.omit(mouseArea.points, identifier)
                         }
@@ -186,6 +241,7 @@ Window {
                             mouseArea.lines[line.identifier] = mouseArea.createLineUi(line)
                         }
                         onLineRemoved: {
+                            console.log("lineRemoved(id: ", identifier, ")")
                             mouseArea.lines[identifier].destroy()
                             mouseArea.lines = _.omit(mouseArea.lines, identifier)
                         }
@@ -206,6 +262,10 @@ Window {
                             mouseArea.lines[identifier].distanceFixed = true;
                             mouseArea.lines[identifier].desiredDistance = desiredLength;
                         }
+
+                        onPointReactionUpdated: {
+                            mouseArea.points[identifier][key] = value
+                        }
                     }
 
                     property var insertPoint : Qt.createComponent("InsertPoint.qml");
@@ -214,7 +274,9 @@ Window {
                     property var insertLineComponent : Qt.createComponent("InsertLine.qml");
 
                     property SketchConverter converter: SketchConverter { }
-                    
+                    property SketchConstraintsSolver constraintsSolver: SketchConstraintsSolver { sketch: sketch }
+                    property SketchLolExporter lolExporter: SketchLolExporter { sketch: sketch }
+
                     function createPointUi(point, identifier) {
                         // todo move ui components outside of sketch class
                         var newPoint = sketch.components.insertPoint.createObject(parent, { 'start': point, 'identifier': identifier })
@@ -243,6 +305,7 @@ Window {
                     property TextField widthEditField : widthEditField;
                     property CheckBox verticalConstraint: verticalConstraint;
                     property CheckBox horizontalConstraint: horizontalConstraint;
+                    property Rectangle pointContextMenu: pointContextMenu;
 
                     anchors.fill: parent
                 }

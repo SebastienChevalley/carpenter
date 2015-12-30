@@ -1,9 +1,6 @@
 
 
 function Tool(context) {
-    //console.log('building a tool');
-    console.log('context', context.nearestPoints);
-
     var missingMethods = this.missingNeededMethods(this)
 
     if(missingMethods.length > 0) {
@@ -29,8 +26,8 @@ function Tool(context) {
         horizontalConstraint: context.horizontalConstraint
     }
 
-    // todo create a dedicated class
     this.sketch = context.sketch;
+
 }
 
 Tool.prototype.neededMethods = [
@@ -38,7 +35,6 @@ Tool.prototype.neededMethods = [
 ];
 
 Tool.prototype.missingNeededMethods = function(that) {
-    console.log('checkImplementation')
     return this.neededMethods.filter(function(method) {
         return typeof that[method] !== 'function'
     });

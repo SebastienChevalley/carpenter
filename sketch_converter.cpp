@@ -6,92 +6,23 @@ SketchConverter::SketchConverter() {
 
 }
 
-void SketchConverter::addPoint(QObject* point) {
-    //meshes << new SketchPoint(point);
+SketchLine* SketchConverter::addLine(QObject* line, QMap<QObject*, QList<QObject*>> linesPerPoint) {
+    SketchLine* sketchLine = new SketchLine(line, linesPerPoint);
+
+    meshes << sketchLine;
+
+    return sketchLine;
 }
 
-void SketchConverter::addLine(QObject* line, QMap<QObject*, QList<QObject*>> linesPerPoint) {
-    meshes << new SketchLine(line, linesPerPoint);
+SketchJoint* SketchConverter::addJoint(QObject* point, QList<QObject*> lines) {
+    SketchJoint* sketchJoint = new SketchJoint(point, lines);
+
+    meshes << sketchJoint;
+
+    return sketchJoint;
 }
 
-void SketchConverter::addJoint(QObject* point, QList<QObject*> lines) {
-    meshes << new SketchJoint(point, lines);
-}
-
-void SketchConverter::exportToFile(QObject* sketch, QString file) {
-    qDebug() << "exportToFile() called";
-    meshes.clear();
-    qDebug() << "size of meshes" << meshes.size();
-
-    // get the store from sketch
-    QVariant maybeStore = sketch->property("store");
-
-    if(!maybeStore.isValid()) {
-        qDebug() << "SketchConverter invalid store property";
-    }
-
-    QVariantMap store = maybeStore.value<QVariantMap>();
-
-    if(!store.contains("points")) {
-        qDebug() << "SketchConverter store doesn't contains points";
-    }
-
-    if(!store.contains("lines")) {
-        qDebug() << "SketchConverter store doesn't contains lines";
-    }
-
-    QVariantList points = store["points"].value<QVariantList>();
-    QVariantList lines = store["lines"].value<QVariantList>();
-    // cllect the line per node
-    QMap<QObject*, QList<QObject*>> linesPerPoint;
-
-    /*foreach(QVariant point, points) {
-        //qDebug() << "SketchConverter insert point";
-        this->addPoint(point.value<QObject*>());
-    }*/
-
-    foreach(QVariant line, lines) {
-        QObject* lineObject = line.value<QObject*>();
-        //qDebug() << "SketchConverter insert line";
-        //this->addLine(lineObject);
-
-        QObject* startPoint = lineObject->property("startPoint").value<QObject*>();
-        QObject* endPoint = lineObject->property("endPoint").value<QObject*>();
-
-        if(!linesPerPoint.contains(startPoint)) {
-            linesPerPoint.insert(startPoint, QList<QObject*>());
-        }
-        if(!linesPerPoint.contains(endPoint)) {
-            linesPerPoint.insert(endPoint, QList<QObject*>());
-        }
-
-        QList<QObject*> startList = linesPerPoint.value(startPoint);
-        QList<QObject*> endList = linesPerPoint.value(endPoint);
-
-        startList.append(lineObject);
-        endList.append(lineObject);
-
-        linesPerPoint.insert(startPoint, startList);
-        linesPerPoint.insert(endPoint, endList);
-    }
-
-    foreach(QVariant line, lines) {
-        QObject* lineObject = line.value<QObject*>();
-        this->addLine(lineObject, linesPerPoint);
-    }
-
-    // create all the joints
-    foreach(QObject* point, linesPerPoint.keys()) {
-        QList<QObject*> lines = linesPerPoint[point];
-
-        if(lines.size() > 0) {
-            this->addJoint(point,lines);
-        }
-    }
-
-    qDebug() << linesPerPoint;
-
-    // create a scene
+aiScene* SketchConverter::generateScene() {
     aiScene* scene = new aiScene();
 
     scene->mRootNode = new aiNode();
@@ -124,15 +55,13 @@ void SketchConverter::exportToFile(QObject* sketch, QString file) {
 
         int verticesCount = mesh->getVertices().size();
 
-        pMesh->mVertices = new aiVector3D[ verticesCount ];
-        //pMesh->mNormals = new aiVector3D[ 0 ];
+        pMesh->mVertices = new aiVector3D[verticesCount];
         pMesh->mNumVertices = verticesCount;
 
         for(int j = 0; j < verticesCount; j++) {
             QVector3D vertex = mesh->getVertices().at(j);
             pMesh->mVertices[j] = aiVector3D( vertex.x() * 0.1, vertex.y() * 0.1, vertex.z() * 0.1 );
-
-            //qDebug() << "vertices" << j << vertex;
+            //pMesh->mVertices[j] = aiVector3D(vertex.x(), vertex.y(), vertex.z());
         }
 
         pMesh->mFaces = new aiFace[ mesh->getFaces().size() ];
@@ -149,37 +78,103 @@ void SketchConverter::exportToFile(QObject* sketch, QString file) {
             for(int i = 0; i < meshFace.size(); i++) {
                 face.mIndices[i] = meshFace.at(i);
             }
-
-            //qDebug() << "faces" << j << meshFace;
         }
     }
 
-    Assimp::Exporter *exporter = new Assimp::Exporter();
-    exporter->Export(scene, "collada", file.toStdString().c_str(), aiProcess_Triangulate);
+    return scene;
+}
 
-    delete exporter;
-    //delete scene->mMaterials[0];
-    //delete scene->mMaterials;
-    /*for(int i = 0; i < meshes.size(); i++) {
-        SketchMesh* mesh = meshes.at(i);
+QVariant SketchConverter::exportToFile(QObject* sketch, QString file) {
+    qDebug() << "exportToFile() called";
+    meshes.clear();
+    qDebug() << "size of meshes" << meshes.size();
 
-        auto pMesh = scene->mMeshes[ i ];
+    // get the store from sketch
+    QVariant maybeStore = sketch->property("store");
 
-        int verticesCount = mesh->getVertices().size();
+    if(!maybeStore.isValid()) {
+        return "Cannot find Sketch to convert";
+    }
 
-        for(int j = 0; j < mesh->getFaces().size(); j++) {
-            aiFace &face = pMesh->mFaces[j];
+    QVariantMap store = maybeStore.value<QVariantMap>();
 
-            delete[] face.mIndices;
+    if(!store.contains("points")) {
+        return "Sketch doesn't contain points";
+    }
+
+    if(!store.contains("lines")) {
+        return "Sketch doesn't contain lines";
+    }
+
+    QVariantList points = store["points"].value<QVariantList>();
+    QVariantList lines = store["lines"].value<QVariantList>();
+    // collect the line per node
+    QMap<QObject*, QList<QObject*>> linesPerPoint;
+
+    foreach(QVariant line, lines) {
+        QObject* lineObject = line.value<QObject*>();
+
+        QObject* startPoint = lineObject->property("startPoint").value<QObject*>();
+        QObject* endPoint = lineObject->property("endPoint").value<QObject*>();
+
+        if(!linesPerPoint.contains(startPoint)) {
+            linesPerPoint.insert(startPoint, QList<QObject*>());
+        }
+        if(!linesPerPoint.contains(endPoint)) {
+            linesPerPoint.insert(endPoint, QList<QObject*>());
         }
 
-        delete[] pMesh->mFaces;
+        QList<QObject*> startList = linesPerPoint.value(startPoint);
+        QList<QObject*> endList = linesPerPoint.value(endPoint);
 
-        delete[] pMesh->mVertices;
-        delete scene->mMeshes[ i ];
-    }*/
-    //delete[] scene->mMeshes;
-    //delete[] scene->mRootNode->mMeshes;
+        startList.append(lineObject);
+        endList.append(lineObject);
+
+        linesPerPoint.insert(startPoint, startList);
+        linesPerPoint.insert(endPoint, endList);
+    }
+
+    foreach(QVariant line, lines) {
+        QObject* lineObject = line.value<QObject*>();
+        SketchLine* newLine = this->addLine(lineObject, linesPerPoint);
+
+        if(!newLine->isValid()) {
+            return newLine->getErrorMessage();
+        }
+    }
+
+    // create all the joints
+    foreach(QObject* point, linesPerPoint.keys()) {
+        QList<QObject*> lines = linesPerPoint[point];
+
+        if(lines.size() > 0) {
+            SketchJoint* newJoint = this->addJoint(point,lines);
+
+            if(!newJoint->isValid()) {
+                return newJoint->getErrorMessage();
+            }
+        }
+    }
+
+    qDebug() << "linesPerPoint: " << linesPerPoint;
+
+    // create a scene
+    aiScene* scene = this->generateScene();
+
+    Assimp::Exporter *exporter = new Assimp::Exporter();
+    aiReturn state = exporter->Export(scene, "collada", file.toStdString().c_str(), aiProcess_Triangulate);
+
+    delete exporter;
     delete scene;
+
+    if(state == AI_SUCCESS) {
+        return true;
+    }
+    else if(state == AI_OUTOFMEMORY) {
+        return "Pas assez de mémoire vive pour terminer l'opération";
+    }
+    else {
+        return "Une erreur s'est produire lors de l'exportation";
+    }
 }
 

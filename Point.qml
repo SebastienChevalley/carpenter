@@ -4,6 +4,10 @@ Item {
     property vector2d start;
     property real identifier
 
+    property bool mx: false
+    property bool my: false
+    property bool mz: false
+
     // todo put in a model class
     function distanceTo(point) {
         return point.minus(start).length();

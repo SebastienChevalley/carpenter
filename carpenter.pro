@@ -15,7 +15,8 @@ SOURCES += main.cpp \
     testtriangulate.cpp \
     sketchjoint.cpp \
     solve.cpp \
-    derivatives.cpp
+    derivatives.cpp \
+    sketchlolexporter.cpp
 
 HEADERS += sketch_converter.h \
     sketchmesh.h \
@@ -27,7 +28,8 @@ HEADERS += sketch_converter.h \
     testnewtonsolver.h \
     testtriangulate.h \
     sketchjoint.h \
-    solve.h
+    solve.h \
+    sketchlolexporter.h
 
 INCLUDEPATH += /usr/local/include/
 

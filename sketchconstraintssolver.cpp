@@ -12,16 +12,19 @@ SketchConstraintsSolver::SketchConstraintsSolver(QObject *parent) : QObject(pare
 }
 
 void SketchConstraintsSolver::setSketch(QObject *sketch) {
-    qDebug() << "sketch:" << sketch;
-    this->solved = false;
+    qDebug() << "my own setter";
     this->sketch = sketch;
+    this->solved = false;
 }
 
-bool SketchConstraintsSolver::solve() {
+QObject* SketchConstraintsSolver::getSketch() {
+    return this->sketch;
+}
+
+QVariant SketchConstraintsSolver::solve() {
     this->solved = false;
     if(this->sketch == Q_NULLPTR) {
-        qDebug() << "sketch is null";
-        return false;
+        return "Sketch is null";
     }
 
     /*
@@ -35,13 +38,11 @@ bool SketchConstraintsSolver::solve() {
     );
 
     if(!isIsMmPerPixelScaleSetCallWorks) {
-        qDebug() << "cannot check if the scale is set";
-        return false;
+        return "Cannot check if the scale is set";
     }
 
     if(!isScaleSet.toBool()) {
-        qDebug() << "cannot apply constraints without scale";
-        return false;
+        return "Cannot apply constraints without scale";
     }
 
     QVariant mmPerPixelScale;
@@ -52,8 +53,7 @@ bool SketchConstraintsSolver::solve() {
     );
 
     if(!isGetMmPerPixelScaleCallWorks) {
-        qDebug() << "cannot retrieve the scale";
-        return false;
+        return "Cannot retrieve the scale";
     }
 
     double pixelPerMmScale = 1.0 / mmPerPixelScale.toDouble();
@@ -88,6 +88,8 @@ bool SketchConstraintsSolver::solve() {
         this->points[point->property("identifier").toInt()] = honk;
     }
 
+    int horizontalAndVerticalConstraints = 0;
+
     // create the constrained lines
     foreach(QVariant item, lines) {
         QObject* line = item.value<QObject*>();
@@ -117,14 +119,17 @@ bool SketchConstraintsSolver::solve() {
             this->constraints << cLine1;
         }
 
+
         if(horizontal) {
             cLine1->horizontallyConstrained();
             cLine2->horizontallyConstrained();
+            horizontalAndVerticalConstraints++;
         }
 
         if(vertical) {
             cLine1->verticallyConstrained();
             cLine2->verticallyConstrained();
+            horizontalAndVerticalConstraints++;
         }
 
         this->lines << cLine1 << cLine2;
@@ -162,15 +167,19 @@ bool SketchConstraintsSolver::solve() {
                 // it's the first point thus the origin
                 if(first) {
                     first = false;
-                    //current->tryToSetX(current->x);
-                    //current->tryToSetY(current->y);
+                    /*(!current->tryToSetX(current->x)) {
+                        return "Cannot set origin";
+                    }
+                    if(!current->tryToSetY(current->y)) {
+                        return "Cannot set origin";
+                    }*/
                 }
 
                 if(line->isHorizontalConstrained()) {
                     appliedConstraints++;
                     qDebug() << "try to constrain horizontally:" << line->end->x <<","<<line->end->y;
                     if(!current->tryToSetY(line->start->y)) {
-                        return false;
+                        return "Conflict on horizontal constraints";
                     }
                 }
 
@@ -178,7 +187,7 @@ bool SketchConstraintsSolver::solve() {
                     appliedConstraints++;
                     qDebug() << "try to constrain vertically:" << line->end->x <<","<<line->end->y;
                     if(!current->tryToSetX(line->start->x)) {
-                        return false;
+                        return "Conflict on vertical constraints";
                     }
                 }
             }
@@ -197,7 +206,8 @@ bool SketchConstraintsSolver::solve() {
     QList<double*> parameters;
     SketchSolvePoint solvePoints[this->points.size()];
     Line solveLines[this->lines.size()];
-    int constraintsCount = 0;
+    int totalConstraints = this->constraints.size() + horizontalAndVerticalConstraints;
+    Constraint constraints[totalConstraints];
     QMap<QString, int> identifierToSolvePointsIndex;
 
     int i = 0;
@@ -217,34 +227,40 @@ bool SketchConstraintsSolver::solve() {
     }
 
     double* pparameters[parameters.size()];
-
     QSet<int> identifiersSeen;
-
-    foreach(ConstrainedLine* line, this->lines) {
-        if(line->isDistanceFixed() && !identifiersSeen.contains(line->identifier)) {
-            constraintsCount++;
-            identifiersSeen += line->identifier;
-        }
-    }
-
-    Constraint constraints[constraintsCount];
-
-    identifiersSeen.clear();
-
     QList<double> lengthParameters;
 
     i = 0;
+    int constraintIndex = 0;
     foreach(ConstrainedLine* line, this->lines) {
-        if(line->isDistanceFixed() && !identifiersSeen.contains(line->identifier)) {
+        if(!identifiersSeen.contains(line->identifier)) {
             identifiersSeen += line->identifier;
 
             solveLines[i].p1 = solvePoints[identifierToSolvePointsIndex[line->start->identifier()]];
             solveLines[i].p2 = solvePoints[identifierToSolvePointsIndex[line->end->identifier()]];
 
-            constraints[i].line1 = solveLines[i];
-            lengthParameters += line->desiredDistance * pixelPerMmScale;
-            constraints[i].type = lineLength;
-            constraints[i].parameter = &lengthParameters.last();
+            if(line->isDistanceFixed()) {
+                constraints[constraintIndex].line1 = solveLines[i];
+                lengthParameters += line->desiredDistance * pixelPerMmScale;
+                constraints[constraintIndex].type = lineLength;
+                constraints[constraintIndex].parameter = &lengthParameters.last();
+
+                constraintIndex++;
+            }
+
+            if(line->isHorizontalConstrained()) {
+                constraints[constraintIndex].line1 = solveLines[i];
+                constraints[constraintIndex].type = sketchSolveHorizontal;
+
+                constraintIndex++;
+            }
+
+            if(line->isVerticallyConstrained()) {
+                constraints[constraintIndex].line1 = solveLines[i];
+                constraints[constraintIndex].type = sketchSolveVertical;
+
+                constraintIndex++;
+            }
 
             i++;
         }
@@ -258,10 +274,16 @@ bool SketchConstraintsSolver::solve() {
 
     qDebug() << "line constraints";
     qDebug() << "----------------\n";
-    qDebug() << "constraints: " << constraintsCount;
+    qDebug() << "constraints: " << this->constraints.size();
     qDebug() << "parameters: " << parameters.size();
 
-    int result = ::solve(pparameters, parameters.size(), constraints, constraintsCount, fine);
+    qDebug() << "solver";
+    qDebug() << "------";
+    qDebug() << "constraintsIndex:" << constraintIndex;
+    qDebug() << "total constraints:" << totalConstraints;
+
+
+    int result = ::solve(pparameters, parameters.size(), constraints, totalConstraints, fine);
 
     if(result == succsess) {
         qDebug() << "solution found";
@@ -276,10 +298,10 @@ bool SketchConstraintsSolver::solve() {
         this->solved = true;
     }
     else if(result == noSolution) {
-        qDebug() << "solution not found";
+        return "Solution not found";
     }
     else {
-        qDebug() << "unexpected things founds";
+        return "Unexpected result";
     }
 
     return this->solved;

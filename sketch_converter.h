@@ -28,17 +28,14 @@ class SketchConverter : public QObject
     Q_OBJECT
     public:
         SketchConverter();
-
-        //static ColladaFile fromSketch(Sketch sketch);
-
     private:
-        void addPoint(QObject* point);
-        void addLine(QObject* line, QMap<QObject*, QList<QObject*>> linesPerPoint);
-        void addJoint(QObject* point, QList<QObject*> lines);
+        SketchLine* addLine(QObject* line, QMap<QObject*, QList<QObject*>> linesPerPoint);
+        SketchJoint* addJoint(QObject* point, QList<QObject*> lines);
+        aiScene* generateScene();
         QList<SketchMesh*> meshes;
 
     public slots:
-        void exportToFile(QObject* sketch, QString path);
+        QVariant exportToFile(QObject* sketch, QString path);
 };
 
 #endif // SKETCHCONVERTER_H
