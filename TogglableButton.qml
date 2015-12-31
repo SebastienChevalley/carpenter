@@ -6,7 +6,7 @@ import "."
 
 
 ButtonStyle {
-    property string icon: "\uf01e"
+    property string icon: ""
     id: style
     background: Rectangle {
         id: buttonBackground

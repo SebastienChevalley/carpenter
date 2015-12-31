@@ -98,11 +98,44 @@ QVariant SketchLolExporter::exportToFile(QString path) {
 
     stream << endl;
 
+
+
+
+    QString reactions;
+    QTextStream reactionsStream(&reactions, QIODevice::WriteOnly);
+    i = 0;
+    foreach(QVariant rawPoint, points) {
+        QObject* point = rawPoint.value<QObject*>();
+
+        bool cx = point->property("cx").toBool();
+        bool cy = point->property("cy").toBool();
+        bool cz = point->property("cz").toBool();
+
+        bool mx = point->property("mx").toBool();
+        bool my = point->property("my").toBool();
+        bool mz = point->property("mz").toBool();
+
+        if(cx || cy || cz || mx || my || mz) {
+            numberOfReaction++;
+
+            reactionsStream << i << ","
+                            << (cx ? "1" : "0") << ","
+                            << (cy ? "1" : "0") << ","
+                            << (cz ? "1" : "0") << ","
+                            << (mx ? "1" : "0") << ","
+                            << (my ? "1" : "0") << ","
+                            << (mz ? "1" : "0")
+                            << endl;
+        }
+        i++;
+    }
+
     stream << "#Number of reaction" << endl
            << numberOfReaction << endl
            << endl;
 
     stream << "#Node Id,x,y,z,Mx,My,Mz" << endl
+           << reactions
            << endl;
 
     stream << "#Number of beams" << endl
@@ -117,7 +150,7 @@ QVariant SketchLolExporter::exportToFile(QString path) {
         QObject* end = line->property("endPoint").value<QObject*>();
         int idStart = start->property("identifier").toInt();
         int idEnd = end->property("identifier").toInt();
-
+        QVector2D pointer = line->property("pointer").value<QVector2D>();
 
         QString letterStart;
         QString letterEnd;
@@ -133,13 +166,15 @@ QVariant SketchLolExporter::exportToFile(QString path) {
         stream << letterStart << letterEnd << ","
                << pointToLolIndex[idStart] << ","
                << pointToLolIndex[idEnd] << ","
+               << pointer.length() << ","
+               << "5" << ","
+               << "" << ","
+               << "" << ","
+               << "0.50e-9"
                << endl;
     }
 
     stream << endl;
-
-
-
 
     return true;
 }

@@ -15,7 +15,7 @@
 #include <QQueue>
 #include <QMetaObject>
 #include <functional>
-
+#include "parameter.h"
 
 class SketchConstraintsSolver : public QObject
 {

@@ -14,9 +14,9 @@ Rectangle {
 
     property real itemHeight: 64
 
-    anchors.left: mainForm.left
+    anchors.left: sketchArea.left
     anchors.leftMargin: 10
-    anchors.verticalCenter: mainForm.verticalCenter
+    anchors.verticalCenter: sketchArea.verticalCenter
 
     function toggleState() {
         console.log("change state")
@@ -62,7 +62,7 @@ Rectangle {
 
             MouseArea {
                 anchors.fill: parent
-                onClicked: mainForm.changeTool(tool)
+                onClicked: mainForm.changeTool(tool, name)
             }
         }
     }

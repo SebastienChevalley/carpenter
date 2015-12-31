@@ -8,6 +8,11 @@
 #include <testnewtonsolver.h>
 #include <testtriangulate.h>
 
+#include <QSharedPointer>
+#include <QSharedDataPointer>
+
+
+
 
 int main(int argc, char *argv[])
 {

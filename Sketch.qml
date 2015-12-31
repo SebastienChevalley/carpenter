@@ -364,11 +364,11 @@ Item {
         }
     }
 
-    signal setPointReaction(string axis, bool value, real identifier)
-    signal pointReactionUpdated(string key, bool value, real identifier)
+    signal setPointReaction(string constraint, bool value, real identifier)
+    signal pointReactionUpdated(string constraint, bool value, real identifier)
 
     onSetPointReaction: {
-        console.log("setPointReaction(axis: " + axis + ", value: " + value + ", identifier: " + identifier + ")")
+        console.log("setPointReaction(constraint: " + constraint + ", value: " + value + ", identifier: " + identifier + ")")
         var indexOf = indexOfPoint(store, identifier);
 
         if(indexOf === -1) {
@@ -376,21 +376,22 @@ Item {
             return;
         }
 
-        if(axis !== "x" && axis !== "y" && axis !== "z") {
-            console.error("unknown axis");
+        var availableConstraints = ["mx", "my", "mz", "cx", "cy", "cz"];
+
+        if(availableConstraints.indexOf(constraint) === -1) {
+            console.error("unknown constraint");
             return;
         }
 
         var oldPoint = store.points[indexOf];
-        var key = "m" + axis;
 
-        if(oldPoint[key] === value) {
+        if(oldPoint[constraint] === value) {
             console.log("nothing to update");
             return;
         }
 
         var newPoint = createPoint(oldPoint.start, identifier, store);
-        newPoint[key] = value;
+        newPoint[constraint] = value;
 
         var newPoints = updateItemInCollection(store.points, indexOf, newPoint);
         var newStore = updatePointInLines(store, identifier, newPoint);
@@ -398,7 +399,7 @@ Item {
         console.log(["mx",newPoint.mx, "my" , newPoint.my, "mz" , newPoint.mz ])
 
         updateStore(_.assign({}, newStore, { 'points': newPoints }));
-        pointReactionUpdated(key, value, identifier);
+        pointReactionUpdated(constraint, value, identifier);
     }
 
     /*

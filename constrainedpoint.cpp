@@ -7,41 +7,43 @@
 ConstrainedPoint::ConstrainedPoint(double x, double y, QObject* point)
 {
     this->relatedPoint = point;
-    this->x = QSharedPointer<double>(new double);
-    *(this->x) = x;
+    this->x = QSharedPointer<Parameter>(new Parameter(x));
 
-    this->y = QSharedPointer<double>(new double);
-    *(this->y) = y;
+    this->y = QSharedPointer<Parameter>(new Parameter(y));
 
     this->fixedX = false;
     this->fixedY = false;
     this->constraintAmount = 0;
 }
 
-bool ConstrainedPoint::tryToSetX(QSharedPointer<double> x) {
+bool ConstrainedPoint::tryToSetX(QSharedPointer<Parameter> x) {
     if(this->fixedX) {
-        return false;
+        // already fixed, need to replace argument x's pointer
+        (*(x)).setValue((*(this->x)).address());
     }
     else {
-        this->x = x;
         this->fixedX = true;
-        return true;
     }
+    this->x = x;
+
+    return true;
 }
 
-bool ConstrainedPoint::tryToSetY(QSharedPointer<double> y) {
+bool ConstrainedPoint::tryToSetY(QSharedPointer<Parameter> y) {
     if(this->fixedY) {
-        return false;
+        // already fixed, need to replace argument y's pointer
+        (*(y)).setValue((*(this->y)).address());
     }
     else {
-        this->y = y;
         this->fixedY = true;
-        return true;
     }
+
+    this->y = y;
+    return true;
 }
 
 QVector2D ConstrainedPoint::point() {
-    return QVector2D(*(this->x),*(this->y));
+    return QVector2D((*(this->x)).value(),(*(this->y)).value());
 }
 
 ConstrainedPoint::operator QString() const {

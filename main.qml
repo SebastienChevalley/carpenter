@@ -90,13 +90,13 @@ Window {
             return name.charAt(0).toLowerCase() + name.slice(1);
         }
 
-        function changeTool(newTool) {
+        function changeTool(newTool, name) {
             if(newTool !== currentTool) {
                 previousTool = currentTool;
                 mouseArea[toolItem(previousTool)].onLeaveTool();
                 mouseArea[toolItem(newTool)].onEnterTool();
 
-                message.displayInfoMessage("Selected tool: " + newTool);
+                message.displayInfoMessage("Selected tool: " + name);
 
                 currentTool = newTool
             }
@@ -124,7 +124,6 @@ Window {
 
         MenuItem{ id: menuItems }
         MessageBox { id: message; }
-        ToolsMenu { id: menu }
 
         ColumnLayout {
             id: mainLayout
@@ -140,6 +139,8 @@ Window {
                 id: sketchArea
                 Layout.fillWidth: true
                 Layout.fillHeight: true
+
+                ToolsMenu { id: menu }
 
                 Label {
                     text: "First, you should set the scale by selecting an item, and defines its length"
@@ -162,6 +163,10 @@ Window {
                     color: Qt.rgba(Settings.palette.r, Settings.palette.g, Settings.palette.b, 0.8)
                     visible: false
 
+                    property Item cx: cx
+                    property Item cy: cy
+                    property Item cz: cz
+
                     property Item mx: mx
                     property Item my: my
                     property Item mz: mz
@@ -171,30 +176,58 @@ Window {
                         spacing: 0
 
                         Button {
-                            id: mx
+                            id: cx
                             text: "x"
-                            style: TogglableButton { }
+                            style: TogglableButton { icon: "\uf023" }
                             onClicked: {
                                 checked = !checked
-                                sketch.setPointReaction("x", checked, mouseArea.selectTool.selectedItem.identifier);
+                                sketch.setPointReaction("cx", checked, mouseArea.selectTool.selectedItem.identifier);
+                            }
+                        }
+                        Button {
+                            id: cy
+                            text: "y"
+                            style: TogglableButton { icon: "\uf023" }
+                            onClicked: {
+                                checked = !checked
+                                sketch.setPointReaction("cy", checked, mouseArea.selectTool.selectedItem.identifier);
+                            }
+                        }
+                        Button {
+                            id: cz
+                            text: "z"
+                            style: TogglableButton { icon: "\uf023" }
+                            onClicked: {
+                                checked = !checked
+                                sketch.setPointReaction("cz", checked, mouseArea.selectTool.selectedItem.identifier);
+                            }
+                        }
+
+                        Button {
+                            id: mx
+                            text: "x"
+                            style: TogglableButton { icon: "\uf01e" }
+                            onClicked: {
+                                checked = !checked
+                                sketch.setPointReaction("mx", checked, mouseArea.selectTool.selectedItem.identifier);
                             }
                         }
                         Button {
                             id: my
                             text: "y"
-                            style: TogglableButton { }
+                            style: TogglableButton { icon: "\uf01e" }
                             onClicked: {
                                 checked = !checked
-                                sketch.setPointReaction("y", checked, mouseArea.selectTool.selectedItem.identifier);
+                                sketch.setPointReaction("my", checked, mouseArea.selectTool.selectedItem.identifier);
                             }
                         }
                         Button {
                             id: mz
                             text: "z"
-                            style: TogglableButton { }
+                            style: TogglableButton { icon: "\uf01e" }
                             onClicked: {
                                 checked = !checked
-                                sketch.setPointReaction("z", checked, mouseArea.selectTool.selectedItem.identifier);
+                                sketch.setPointReaction("mz", checked, mouseArea.selectTool.selectedItem.identifier);
                             }
                         }
                     }
@@ -264,8 +297,12 @@ Window {
                         }
 
                         onPointReactionUpdated: {
-                            mouseArea.points[identifier][key] = value
+                            mouseArea.points[identifier][constraint] = value
                         }
+                    }
+
+                    onClicked: {
+                        message.hideMessage()
                     }
 
                     property var insertPoint : Qt.createComponent("InsertPoint.qml");
@@ -306,6 +343,7 @@ Window {
                     property CheckBox verticalConstraint: verticalConstraint;
                     property CheckBox horizontalConstraint: horizontalConstraint;
                     property Rectangle pointContextMenu: pointContextMenu;
+                    property ToolsMenu toolsMenu: menu;
 
                     anchors.fill: parent
                 }

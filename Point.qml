@@ -4,6 +4,10 @@ Item {
     property vector2d start;
     property real identifier
 
+    property bool cx: false
+    property bool cy: false
+    property bool cz: false
+
     property bool mx: false
     property bool my: false
     property bool mz: false

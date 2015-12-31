@@ -12,4 +12,5 @@ QtObject {
 
     readonly property color palette: "#40000000"
     readonly property color paletteHighlight: "#20000000"
+
 }

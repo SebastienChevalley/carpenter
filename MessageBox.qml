@@ -74,6 +74,11 @@ Rectangle {
         displayMessage("info", "Start by ")
     }
 
+    function hideMessage() {
+        hideTimer.stop();
+        message.opacity = 0;
+    }
+
     Timer {
         interval: 10000
         running: false
@@ -129,8 +134,7 @@ Rectangle {
             anchors.fill: parent
 
             onPressed: {
-                hideTimer.stop();
-                message.opacity = 0;
+                hideMessage()
             }
         }
     }

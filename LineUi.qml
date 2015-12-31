@@ -1,4 +1,5 @@
 import QtQuick 2.0
+import QtQuick.Controls 1.4
 import "."
 
 Line {
@@ -51,6 +52,15 @@ Line {
             angle: (thePointer().y < 0 ? -1 : 1) * Math.acos(horizontal.dotProduct(thePointer()) / (thePointer().length())) * 180 / Math.PI
             origin.x: Settings.constructionLineWidth / 2.0
             origin.y: Settings.constructionLineWidth / 2.0
+        }
+
+
+        // Want to display the identifier on object ?
+        Label {
+            text: identifier
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.verticalCenter: parent.verticalCenter
+            font.pointSize: 16
         }
 
         MouseArea {

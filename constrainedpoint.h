@@ -5,17 +5,19 @@
 #include <QVector2D>
 #include <QVariant>
 #include <QSharedPointer>
+#include "parameter.h"
+
 
 class ConstrainedPoint
 {
     public:
         ConstrainedPoint(double x, double y, QObject* point);
-        bool tryToSetX(QSharedPointer<double> x);
-        bool tryToSetY(QSharedPointer<double> y);
+        bool tryToSetX(QSharedPointer<Parameter> x);
+        bool tryToSetY(QSharedPointer<Parameter> y);
         QVector2D point();
         operator QString() const;
-        QSharedPointer<double> x;
-        QSharedPointer<double> y;
+        QSharedPointer<Parameter> x;
+        QSharedPointer<Parameter> y;
         QString identifier();
         bool fixedX;
         bool fixedY;
