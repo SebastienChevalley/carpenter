@@ -11,8 +11,6 @@ SOURCES += main.cpp \
     sketchconstraintssolver.cpp \
     constrainedpoint.cpp \
     constrainedline.cpp \
-    testnewtonsolver.cpp \
-    testtriangulate.cpp \
     sketchjoint.cpp \
     solve.cpp \
     derivatives.cpp \
@@ -26,8 +24,6 @@ HEADERS += sketch_converter.h \
     sketchconstraintssolver.h \
     constrainedpoint.h \
     constrainedline.h \
-    testnewtonsolver.h \
-    testtriangulate.h \
     sketchjoint.h \
     solve.h \
     sketchlolexporter.h \
