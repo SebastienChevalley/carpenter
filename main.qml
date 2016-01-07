@@ -6,7 +6,7 @@ import QtQuick.Controls.Styles 1.4
 import QtMultimedia 5.5
 import QtGraphicalEffects 1.0
 
-import "."
+import "." // to import Settings
 import "qrc:/tools/tools/SelectTool.js" as SelectTool
 import "qrc:/tools/tools/InsertTool.js" as InsertTool
 import "qrc:/tools/tools/MoveTool.js" as MoveTool
@@ -17,12 +17,10 @@ import SketchConverter 1.0
 import SketchConstraintsSolver 1.0
 import SketchLolExporter 1.0
 
-
 Window {
     visible: true
-    width: 950
-    height: 700
-
+    width: Settings.appWidth
+    height: Settings.appHeight
 
     MainForm {
         id: mainForm
@@ -69,7 +67,7 @@ Window {
                 }
             }
         ]
-        state: "InsertTool"
+        state: Settings.defaultTool
         property string previousTool: ""
         property string currentTool: state;
 
@@ -122,8 +120,8 @@ Window {
             backgroundImage.source = path;
         }
 
-        MenuItem{ id: menuItems }
-        MessageBox { id: message; }
+        MenuItem { id: menuItems }
+        MessageBox { id: message }
 
         ColumnLayout {
             id: mainLayout
@@ -154,91 +152,14 @@ Window {
 
                 Ruler { id: ruler }
 
-                Rectangle {
-                    id: pointContextMenu
-                    width: childrenRect.width + 10
-                    height: childrenRect.height
-                    z: 200
-                    radius: 5
-                    color: Qt.rgba(Settings.palette.r, Settings.palette.g, Settings.palette.b, 0.8)
-                    visible: false
-
-                    property Item cx: cx
-                    property Item cy: cy
-                    property Item cz: cz
-
-                    property Item mx: mx
-                    property Item my: my
-                    property Item mz: mz
-
-                    RowLayout {
-                        x: 5
-                        spacing: 0
-
-                        Button {
-                            id: cx
-                            text: "x"
-                            style: TogglableButton { icon: "\uf023" }
-                            onClicked: {
-                                checked = !checked
-                                sketch.setPointReaction("cx", checked, mouseArea.selectTool.selectedItem.identifier);
-                            }
-                        }
-                        Button {
-                            id: cy
-                            text: "y"
-                            style: TogglableButton { icon: "\uf023" }
-                            onClicked: {
-                                checked = !checked
-                                sketch.setPointReaction("cy", checked, mouseArea.selectTool.selectedItem.identifier);
-                            }
-                        }
-                        Button {
-                            id: cz
-                            text: "z"
-                            style: TogglableButton { icon: "\uf023" }
-                            onClicked: {
-                                checked = !checked
-                                sketch.setPointReaction("cz", checked, mouseArea.selectTool.selectedItem.identifier);
-                            }
-                        }
-
-                        Button {
-                            id: mx
-                            text: "x"
-                            style: TogglableButton { icon: "\uf01e" }
-                            onClicked: {
-                                checked = !checked
-                                sketch.setPointReaction("mx", checked, mouseArea.selectTool.selectedItem.identifier);
-                            }
-                        }
-                        Button {
-                            id: my
-                            text: "y"
-                            style: TogglableButton { icon: "\uf01e" }
-                            onClicked: {
-                                checked = !checked
-                                sketch.setPointReaction("my", checked, mouseArea.selectTool.selectedItem.identifier);
-                            }
-                        }
-                        Button {
-                            id: mz
-                            text: "z"
-                            style: TogglableButton { icon: "\uf01e" }
-                            onClicked: {
-                                checked = !checked
-                                sketch.setPointReaction("mz", checked, mouseArea.selectTool.selectedItem.identifier);
-                            }
-                        }
-                    }
-                }
+                PointContextMenu { id: pointContextMenu }
+                LineContextMenu { id: lineContextMenu }
 
                 Image {
                     id: backgroundImage
                     anchors.fill: parent
-                    fillMode: Image.PreserveAspectCrop
+                    fillMode: Settings.backgroundFillMode
                     opacity: 0.5
-
                 }
 
                 MouseArea {
@@ -288,7 +209,7 @@ Window {
 
                         onSetInitialScale: {
                             helpTip.text = "Then you can set the distance for each line"
-                            widthEditField.placeholderText = "Line length"
+                            lineContextMenu.widthEdit.placeholderText = "Line length"
                         }
 
                         onSetDesiredDistance: {
@@ -339,92 +260,15 @@ Window {
                     property var moveTool: new MoveTool.MoveTool(mouseArea);
                     property var deleteTool: new DeleteTool.DeleteTool(mouseArea);
 
-                    property TextField widthEditField : widthEditField;
-                    property CheckBox verticalConstraint: verticalConstraint;
-                    property CheckBox horizontalConstraint: horizontalConstraint;
-                    property Rectangle pointContextMenu: pointContextMenu;
+                    property PointContextMenu pointContextMenu: pointContextMenu;
+                    property LineContextMenu lineContextMenu: lineContextMenu;
+
                     property ToolsMenu toolsMenu: menu;
 
                     anchors.fill: parent
                 }
             }
 
-            Rectangle {
-                Layout.fillWidth: true
-                color: "#333333"
-                height:60
-
-                RowLayout {
-                    id: rowLayout1
-                    anchors.rightMargin: 8
-                    anchors.leftMargin: 8
-                    anchors.bottomMargin: 8
-                    anchors.topMargin: 8
-                    anchors.fill: parent
-                    spacing: 16
-                    Layout.fillHeight: true
-                    Layout.fillWidth: true
-
-                    Label {
-                        text: "\uf07e"
-                        anchors.left: parent.left
-                        anchors.leftMargin: 0
-                        font.family: "FontAwesome"
-                        color: "white"
-                    }
-
-                    TextField {
-                        id: widthEditField
-                        enabled: false
-                        validator: RegExpValidator {
-                            regExp: /^([0-9]*)\.([0-9]*)|([0-9]+)$/
-                        }
-                        placeholderText: "Initial scale"
-                    }
-
-                    Label {
-                        text: "mm"
-                        color: "white"
-                    }
-
-                    Rectangle {
-                        width: 10
-                    }
-
-                    Label {
-                        text: "constraints"
-                        color: "white"
-                    }
-
-                    CheckBox {
-                        enabled: false
-                        id: verticalConstraint
-                        style: CheckBoxStyle {
-                            label: Text {
-                                color: "white"
-                                text: "|"
-                                font.bold: true
-                            }
-                        }
-                    }
-
-                    CheckBox {
-                        enabled: false
-                        id: horizontalConstraint
-                        style: CheckBoxStyle {
-                            label: Text {
-                                color: "white"
-                                text: "―"
-                                font.bold: true
-                            }
-                        }
-                    }
-
-                    Rectangle {
-                        Layout.fillWidth: true
-                    }
-                }
-            }
         }
 
     }

@@ -1,6 +1,7 @@
 import QtQuick 2.0
 import QtQuick.Controls 1.4
-import "."
+import "." // to import Settings
+
 
 Line {
 
@@ -20,7 +21,7 @@ Line {
         updateIntermediatePoint();
     }
 
-    property color fill: "grey"
+    property color fill: Settings.lineColor
 
     function getLine() {
         return line;
@@ -38,9 +39,9 @@ Line {
         id: line
         // radius
         width: parent.pointer.length() + height / 2.0 + (Settings.constructionLineWidth/2.0);
-        color: parent.selected ? "blue" : fill
+        color: parent.selected ? Settings.selectedColor : fill
         height: Settings.constructionLineWidth
-        opacity: 0.5
+        opacity: Settings.lineOpacity
         radius: Settings.constructionLineWidth / 2.0
         z: 10;
 

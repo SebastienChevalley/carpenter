@@ -28,7 +28,9 @@ SketchLine::SketchLine(QObject* line, QMap<QObject*, QList<QObject*>> linesPerPo
     }
 
     if(!maybeEndPoint.isValid() || !maybeEndPoint.canConvert<QObject*>()) {
-        qDebug() << "endPoint " << "isValid:" << maybeEndPoint.isValid();
+#ifdef CARPENTER_DEBUG
+        qDebug() << "SketchLine: endPoint " << "isValid:" << maybeEndPoint.isValid();
+#endif
         this->setErrorMessage("Line doesn't contain an ending point");
         return;
     }
@@ -83,7 +85,10 @@ SketchLine::SketchLine(QObject* line, QMap<QObject*, QList<QObject*>> linesPerPo
         allVertices.replace(i, transform * allVertices.at(i));
 
         vertices << allVertices[i];
-        qDebug() << "insert vertex" << allVertices[i];
+
+#ifdef CARPENTER_DEBUG
+        qDebug() << "SketchLine: insert vertex" << allVertices[i];
+#endif
     }
 
     int facesIndex[36] = {
@@ -105,10 +110,14 @@ SketchLine::SketchLine(QObject* line, QMap<QObject*, QList<QObject*>> linesPerPo
         QList<int> face;
         face << facesIndex[i*3] << facesIndex[i*3+1] << facesIndex[i*3+2];
         faces << face;
-        qDebug() << "insert faces" << QVector3D(facesIndex[i], facesIndex[i+1], facesIndex[i+2]);
-    }
 
-    qDebug()<< "#faces" << faces.size();
+#ifdef CARPENTER_DEBUG
+        qDebug() << "SketchLine: insert faces" << QVector3D(facesIndex[i], facesIndex[i+1], facesIndex[i+2]);
+#endif
+    }
+#ifdef CARPENTER_DEBUG
+    qDebug()<< "SketchLine: #faces" << faces.size();
+#endif
 
     this->setValid(true);
 }

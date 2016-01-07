@@ -29,13 +29,20 @@ HEADERS += sketch_converter.h \
     sketchlolexporter.h \
     parameter.h
 
-INCLUDEPATH += /usr/local/include/
 
 RESOURCES += qml.qrc
 
-# provide manually directory -L/usr/local/lib
-LIBS += /usr/local/lib/libassimp.dylib
-LIBS += /usr/local/lib/libopencv_core.2.4.dylib
+DEFINES += CARPENTER_DEBUG
+
+mac {
+    INCLUDEPATH += /usr/local/include/
+
+    LIBS += /usr/local/lib/libassimp.dylib
+    LIBS += /usr/local/lib/libopencv_core.2.4.dylib
+}
+android {
+
+}
 
 
 # Additional import path used to resolve QML modules in Qt Creator's code model
@@ -47,3 +54,7 @@ include(deployment.pri)
 DISTFILES += \
     qmldir \
     empty.dae
+
+#QMAKE_CC=/usr/local/Cellar/gcc/5.2.0/bin/g++-5
+#QMAKE_CXX=/usr/local/Cellar/gcc/5.2.0/bin/g++-5
+#QMAKE_LINK=/usr/local/Cellar/gcc/5.2.0/bin/g++-5

@@ -2,6 +2,8 @@ import QtQuick 2.0
 import QtQuick.Controls 1.4
 import QtQuick.Layouts 1.2
 
+import "." // to import Settings
+
 Rectangle {
     z: 100;
     id: ruler

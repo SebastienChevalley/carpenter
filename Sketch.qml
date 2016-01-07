@@ -1,7 +1,7 @@
 import QtQuick 2.0
 import SketchConstraintsSolver 1.0
 
-import "."
+import "." // to import Settings
 import "qrc:/lib/lib/lodash.js" as Lodash
 
 /**
@@ -688,7 +688,7 @@ Item {
 
     // Store functions
     function updateStore(newStore) {
-        history.push(store);
+        //history.push(store);
         store = newStore;
     }
 

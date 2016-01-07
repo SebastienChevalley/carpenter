@@ -1,6 +1,7 @@
 import QtQuick 2.0
 import QtQuick.Controls 1.4
 import QtQuick.Layouts 1.2
+import "." // to import Settings
 
 
 Rectangle {
@@ -124,7 +125,7 @@ Rectangle {
         Label {
             id: messageContent
             color: "#ffffff"
-            text: "Error honk tagada constraint failed"
+            text: "Errror message"
             anchors.margins: 5
 
             Layout.fillWidth: true

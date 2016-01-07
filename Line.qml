@@ -1,4 +1,5 @@
 import QtQuick 2.0
+import "." // to import Settings
 
 Item {
     id: myLine
@@ -33,20 +34,6 @@ Item {
     onEndChanged: {
         updatePointer()
     }
-
-    Component.onCompleted: {
-       //startPoint.startChanged.connect(coucou)
-       //endPoint.startChanged.connect(coucou)
-    }
-
-
-    /*endPoint.onStartChanged: {
-        end = endPoint.start
-    }
-
-    startPoint.onStartChanged: {
-        start = startPoint.start
-    }*/
 
     // compare the two side of the line
     function equal(that) {

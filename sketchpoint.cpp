@@ -11,12 +11,17 @@ SketchPoint::SketchPoint(QObject* point)
     QVariant maybeStart = point->property("start");
 
     if(!maybeStart.isValid() || !maybeStart.convert(QVariant::Vector2D)) {
+#ifdef CARPENTER_DEBUG
         qDebug() << "SketchPoint: start not valid";
+#endif
         return;
     }
 
     QVector2D position = maybeStart.value<QVector2D>();
-    qDebug() << "SketchPoint @" << position;
+
+#ifdef CARPENTER_DEBUG
+    qDebug() << "SketchPoint: @" << position;
+#endif
 
     float length = 10.0f;
     QVector3D translate = QVector3D(position.x(), position.y(), -length / 2.0f);

@@ -3,7 +3,6 @@
         <file>main.qml</file>
         <file>MainForm.ui.qml</file>
         <file>InsertPoint.qml</file>
-        <file>DrawingLineGuide.qml</file>
         <file>Settings.qml</file>
         <file>qmldir</file>
         <file>Point.qml</file>
@@ -23,6 +22,8 @@
         <file>MessageBox.qml</file>
         <file>Ruler.qml</file>
         <file>TogglableButton.qml</file>
+        <file>PointContextMenu.qml</file>
+        <file>LineContextMenu.qml</file>
     </qresource>
     <qresource prefix="/tools">
         <file>tools/MoveTool.js</file>

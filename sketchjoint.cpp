@@ -48,16 +48,13 @@ SketchJoint::SketchJoint(QObject* rawPoint, QList<QObject*> lines) {
       * 5) Compute the 3D vertex
       */
 
-
-    /*
-     * 1)
-     */
-
-    qDebug() << "new SketchJoint";
-    qDebug() << lines;
-    qDebug() << rawPoint;
-    qDebug() << "edgeShortcut" << SketchLine::edgeShortcut;
-    qDebug() << "radius" << SketchLine::radius;
+#ifdef CARPENTER_DEBUG
+    qDebug() << "SketchJoint: new SketchJoint";
+    qDebug() << "SketchJoint: " << lines;
+    qDebug() << "SketchJoint: " << rawPoint;
+    qDebug() << "SketchJoint: edgeShortcut" << SketchLine::edgeShortcut;
+    qDebug() << "SketchJoint: radius" << SketchLine::radius;
+#endif
 
     QVariant startProperty = rawPoint->property("start");
 
@@ -67,9 +64,6 @@ SketchJoint::SketchJoint(QObject* rawPoint, QList<QObject*> lines) {
     }
 
     QVector2D point = startProperty.value<QVector2D>();
-
-    QVector2D horizon = QVector2D(1,0);
-    QList<QVector2D> externalLines;
 
     // Nothing to do if no more than one line
     if(lines.size() <= 1) {
@@ -116,7 +110,9 @@ SketchJoint::SketchJoint(QObject* rawPoint, QList<QObject*> lines) {
         }
 
         line->setProperty("sortAngle", angle);
-        qDebug() << "line #" << identifier << ":" << angle;
+#ifdef CARPENTER_DEBUG
+        qDebug() << "SketchJoint: line #" << identifier << ":" << angle;
+#endif
 
         /*
          * 2) compute the two points
@@ -131,19 +127,21 @@ SketchJoint::SketchJoint(QObject* rawPoint, QList<QObject*> lines) {
         QVector2D thirdPoint = point - (normal * SketchLine::radius);
         QVector2D fourthPoint = point + (pointer * SketchLine::edgeShortcut) - (normal * SketchLine::radius);
 
-        qDebug() << "#:" <<  identifier;
+#ifdef CARPENTER_DEBUG
+        qDebug() << "SketchJoint: #:" <<  identifier;
 
-        qDebug() << "  -> origin" << point.x() << point.y() <<  "";
-        qDebug() << "  -> normal" << normal <<  "";
-        qDebug() << "  -> normal * radius" << (normal * SketchLine::radius) <<  "\n";
-        qDebug() << "  -> pointer" << pointer <<  "";
-        qDebug() << "  -> pointer * edgeShortcut" << (pointer * SketchLine::edgeShortcut) <<  "\n";
+        qDebug() << "SketchJoint:  -> origin" << point.x() << point.y() <<  "";
+        qDebug() << "SketchJoint:  -> normal" << normal <<  "";
+        qDebug() << "SketchJoint:  -> normal * radius" << (normal * SketchLine::radius) <<  "\n";
+        qDebug() << "SketchJoint:  -> pointer" << pointer <<  "";
+        qDebug() << "SketchJoint:  -> pointer * edgeShortcut" << (pointer * SketchLine::edgeShortcut) <<  "\n";
 
-        qDebug() << " -> firstPoint (" << firstPoint.x() << "," << firstPoint.y() << ")";
-        qDebug() << " -> secondPoint (" << secondPoint.x() << "," << secondPoint.y() << ")";
+        qDebug() << "SketchJoint:  -> firstPoint (" << firstPoint.x() << "," << firstPoint.y() << ")";
+        qDebug() << "SketchJoint:  -> secondPoint (" << secondPoint.x() << "," << secondPoint.y() << ")";
 
-        qDebug() << " -> thirdPoint (" << thirdPoint.x() << "," << thirdPoint.y() << ")";
-        qDebug() << " -> fourthPoint (" << fourthPoint.x() << "," << fourthPoint.y() << ")";
+        qDebug() << "SketchJoint:  -> thirdPoint (" << thirdPoint.x() << "," << thirdPoint.y() << ")";
+        qDebug() << "SketchJoint:  -> fourthPoint (" << fourthPoint.x() << "," << fourthPoint.y() << ")";
+#endif
 
         line->setProperty("firstPoint", firstPoint);
         line->setProperty("secondPoint", secondPoint);
@@ -160,7 +158,9 @@ SketchJoint::SketchJoint(QObject* rawPoint, QList<QObject*> lines) {
     // 3) Compute the intersection
     int i = 0;
     foreach(QObject* line, lines) {
-        qDebug() << "#" <<  i << ":" <<  line->property("identifier").toInt();
+#ifdef CARPENTER_DEBUG
+        qDebug() << "SketchJoint: #" <<  i << ":" <<  line->property("identifier").toInt();
+#endif
         i++;
     }
 
@@ -168,7 +168,9 @@ SketchJoint::SketchJoint(QObject* rawPoint, QList<QObject*> lines) {
     QList<QVector2D> vertices;
 
     double preconditionAngle = qRadiansToDegrees(2*qAtan(SketchLine::radius/SketchLine::edgeShortcut));
-    qDebug() << "preconditionAngle: " << preconditionAngle;
+#ifdef CARPENTER_DEBUG
+    qDebug() << "SketchJoint: preconditionAngle: " << preconditionAngle;
+#endif
 
     for(int lineIndex = 0; lineIndex < lines.size(); lineIndex++) {
 
@@ -180,7 +182,9 @@ SketchJoint::SketchJoint(QObject* rawPoint, QList<QObject*> lines) {
         QObject* line1 = lines.at(lineIndex);
         QObject* line2 = lines.at((lineIndex + 1) % lines.size());
 
-        qDebug() << "#" <<  i << ":" <<  line1->property("identifier").toInt();
+#ifdef CARPENTER_DEBUG
+        qDebug() << "SketchJoint: #" <<  i << ":" <<  line1->property("identifier").toInt();
+#endif
 
         /*
          * Before computing, we check for the precondition on angle
@@ -192,8 +196,9 @@ SketchJoint::SketchJoint(QObject* rawPoint, QList<QObject*> lines) {
             deltaAngle += 360;
         }
 
-        qDebug() << "deltaAngle: " << deltaAngle;
-
+#ifdef CARPENTER_DEBUG
+        qDebug() << "SketchJoint:" << "deltaAngle: " << deltaAngle;
+#endif
 
         if(deltaAngle < preconditionAngle) {
             this->setErrorMessage("Impossible to compute the joint two lines have too small angle between them");
@@ -244,8 +249,11 @@ SketchJoint::SketchJoint(QObject* rawPoint, QList<QObject*> lines) {
         vertices << intersection;
         vertices << D;
     }
-    qDebug() << "\n---------";
-    qDebug() << "vertices\n";
+
+#ifdef CARPENTER_DEBUG
+    qDebug() << "SketchJoint: \nSketchJoint: ---------";
+    qDebug() << "SketchJoint: vertices\n";
+#endif
 
     int faceIndex = 0;
     int totalFaces = vertices.size();
@@ -253,7 +261,9 @@ SketchJoint::SketchJoint(QObject* rawPoint, QList<QObject*> lines) {
     QList<int> bottomFace;
     QList<QVector3D> topVertices;
     foreach(QVector2D vertex, vertices) {
-        qDebug() << "(" << vertex.x() << "," << vertex.y() << ")";
+#ifdef CARPENTER_DEBUG
+        qDebug() << "SketchJoint: (" << vertex.x() << "," << vertex.y() << ")";
+#endif
 
         this->vertices << QVector3D(vertex.x(), vertex.y(), SketchLine::radius);
         topVertices << QVector3D(vertex.x(), vertex.y(), -SketchLine::radius);
@@ -276,7 +286,10 @@ SketchJoint::SketchJoint(QObject* rawPoint, QList<QObject*> lines) {
     this->faces << topFace;
     this->faces << bottomFace;
 
-    qDebug() << "---------\n";
+#ifdef CARPENTER_DEBUG
+    qDebug() << "SketchJoint: ---------\nSketchJoint: ";
+#endif
+
 
     this->setValid(true);
 }

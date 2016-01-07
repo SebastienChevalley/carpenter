@@ -7,6 +7,11 @@
 #include <QVector2D>
 #include <QObject>
 
+/**
+ * @brief The SketchPoint class
+ *
+ * Coarse version of the joint mesh between lines
+ */
 class SketchPoint : public SketchMesh
 {
     public:

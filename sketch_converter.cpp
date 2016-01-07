@@ -6,24 +6,155 @@ SketchConverter::SketchConverter() {
 
 }
 
-SketchLine* SketchConverter::addLine(QObject* line, QMap<QObject*, QList<QObject*>> linesPerPoint) {
-    SketchLine* sketchLine = new SketchLine(line, linesPerPoint);
+QSharedPointer<SketchLine> SketchConverter::addLine(QObject* line, QMap<QObject*, QList<QObject*>> linesPerPoint) {
+    QSharedPointer<SketchLine> sketchLine(new SketchLine(line, linesPerPoint));
 
     meshes << sketchLine;
 
     return sketchLine;
 }
 
-SketchJoint* SketchConverter::addJoint(QObject* point, QList<QObject*> lines) {
-    SketchJoint* sketchJoint = new SketchJoint(point, lines);
+QSharedPointer<SketchJoint> SketchConverter::addJoint(QObject* point, QList<QObject*> lines) {
+    QSharedPointer<SketchJoint> sketchJoint (new SketchJoint(point, lines));
 
     meshes << sketchJoint;
 
     return sketchJoint;
 }
 
-aiScene* SketchConverter::generateScene() {
-    aiScene* scene = new aiScene();
+QSharedPointer<SketchPoint> SketchConverter::addPoint(QObject* point) {
+    QSharedPointer<SketchPoint> sketchPoint (new SketchPoint(point));
+
+    meshes << sketchPoint;
+
+    return sketchPoint;
+}
+
+QVariant SketchConverter::exportToFile(QObject* sketch, QString file) {
+    QString error;
+    bool result = this->exportToFile(sketch, file, error);
+
+    if(result) {
+        return true;
+    }
+    else {
+        return error;
+    }
+}
+
+
+bool SketchConverter::exportToFile(QObject* sketch, QString file, QString& error) {
+#ifdef CARPENTER_DEBUG
+    qDebug() << "SketchConverter: exportToFile() called";
+#endif
+
+
+    meshes.clear();
+#ifdef CARPENTER_DEBUG
+    qDebug() << "SketchConverter: size of meshes" << meshes.size();
+#endif
+
+    // get the store from sketch
+    QVariant maybeStore = sketch->property("store");
+
+    if(!maybeStore.isValid()) {
+        error = "Cannot find Sketch to convert";
+        return false;
+    }
+
+    QVariantMap store = maybeStore.value<QVariantMap>();
+
+    if(!store.contains("points")) {
+        error =  "Sketch doesn't contain points";
+        return false;
+    }
+
+    if(!store.contains("lines")) {
+        error = "Sketch doesn't contain lines";
+        return false;
+    }
+
+    QVariantList points = store["points"].value<QVariantList>();
+    QVariantList lines = store["lines"].value<QVariantList>();
+    // collect the line per node
+    QMap<QObject*, QList<QObject*>> linesPerPoint;
+
+    foreach(QVariant rawPoint, points) {
+        this->addPoint(rawPoint.value<QObject*>());
+    }
+
+    foreach(QVariant line, lines) {
+        QObject* lineObject = line.value<QObject*>();
+
+        QObject* startPoint = lineObject->property("startPoint").value<QObject*>();
+        QObject* endPoint = lineObject->property("endPoint").value<QObject*>();
+
+        if(!linesPerPoint.contains(startPoint)) {
+            linesPerPoint.insert(startPoint, QList<QObject*>());
+        }
+        if(!linesPerPoint.contains(endPoint)) {
+            linesPerPoint.insert(endPoint, QList<QObject*>());
+        }
+
+        QList<QObject*> startList = linesPerPoint.value(startPoint);
+        QList<QObject*> endList = linesPerPoint.value(endPoint);
+
+        startList.append(lineObject);
+        endList.append(lineObject);
+
+        linesPerPoint.insert(startPoint, startList);
+        linesPerPoint.insert(endPoint, endList);
+    }
+
+    foreach(QVariant line, lines) {
+        QObject* lineObject = line.value<QObject*>();
+        QSharedPointer<SketchLine> newLine = this->addLine(lineObject, linesPerPoint);
+
+        if(!(*newLine).isValid()) {
+            error = newLine->getErrorMessage();
+            return false;
+        }
+    }
+
+    // create all the joints
+    foreach(QObject* point, linesPerPoint.keys()) {
+        QList<QObject*> lines = linesPerPoint[point];
+
+        if(lines.size() > 0) {
+            QSharedPointer<SketchJoint> newJoint = this->addJoint(point,lines);
+
+            if(!(*newJoint).isValid()) {
+                error = newJoint->getErrorMessage();
+                return false;
+            }
+        }
+    }
+#ifdef CARPENTER_DEBUG
+    qDebug() << "SketchConverter: linesPerPoint: " << linesPerPoint;
+#endif
+
+    // create a scene
+    QSharedPointer<aiScene> scene = this->generateScene();
+
+    Assimp::Exporter exporter;
+    aiReturn state = exporter.Export(scene.data(), "collada", file.toStdString().c_str(), aiProcess_Triangulate);
+
+
+    if(state == AI_SUCCESS) {
+        return true;
+    }
+    else if(state == AI_OUTOFMEMORY) {
+        error = "Pas assez de mémoire vive pour terminer l'opération";
+        return false;
+    }
+    else {
+        error = "Une erreur s'est produire lors de l'exportation";
+        return false;
+    }
+}
+
+QSharedPointer<aiScene> SketchConverter::generateScene() {
+    QSharedPointer<aiScene> scene(new aiScene());
 
     scene->mRootNode = new aiNode();
 
@@ -43,7 +174,7 @@ aiScene* SketchConverter::generateScene() {
 
     // per mesh initialization, set the material to 0
     for(int i = 0; i < meshes.size(); i++) {
-        SketchMesh* mesh = meshes.at(i);
+        QSharedPointer<SketchMesh> mesh = meshes.at(i);
 
         scene->mMeshes[ i ] = new aiMesh();
         scene->mMeshes[ i ]->mMaterialIndex = 0;
@@ -82,103 +213,5 @@ aiScene* SketchConverter::generateScene() {
     }
 
     return scene;
-}
-
-QVariant SketchConverter::exportToFile(QObject* sketch, QString file) {
-    qDebug() << "exportToFile() called";
-    meshes.clear();
-    qDebug() << "size of meshes" << meshes.size();
-
-    // get the store from sketch
-    QVariant maybeStore = sketch->property("store");
-
-    if(!maybeStore.isValid()) {
-        return "Cannot find Sketch to convert";
-    }
-
-    QVariantMap store = maybeStore.value<QVariantMap>();
-
-    if(!store.contains("points")) {
-        return "Sketch doesn't contain points";
-    }
-
-    if(!store.contains("lines")) {
-        return "Sketch doesn't contain lines";
-    }
-
-    QVariantList points = store["points"].value<QVariantList>();
-    QVariantList lines = store["lines"].value<QVariantList>();
-    // collect the line per node
-    QMap<QObject*, QList<QObject*>> linesPerPoint;
-
-    foreach(QVariant rawPoint, points) {
-        meshes << new SketchPoint(rawPoint.value<QObject*>());
-    }
-
-    foreach(QVariant line, lines) {
-        QObject* lineObject = line.value<QObject*>();
-
-        QObject* startPoint = lineObject->property("startPoint").value<QObject*>();
-        QObject* endPoint = lineObject->property("endPoint").value<QObject*>();
-
-        if(!linesPerPoint.contains(startPoint)) {
-            linesPerPoint.insert(startPoint, QList<QObject*>());
-        }
-        if(!linesPerPoint.contains(endPoint)) {
-            linesPerPoint.insert(endPoint, QList<QObject*>());
-        }
-
-        QList<QObject*> startList = linesPerPoint.value(startPoint);
-        QList<QObject*> endList = linesPerPoint.value(endPoint);
-
-        startList.append(lineObject);
-        endList.append(lineObject);
-
-        linesPerPoint.insert(startPoint, startList);
-        linesPerPoint.insert(endPoint, endList);
-    }
-
-    foreach(QVariant line, lines) {
-        QObject* lineObject = line.value<QObject*>();
-        SketchLine* newLine = this->addLine(lineObject, linesPerPoint);
-
-        if(!newLine->isValid()) {
-            return newLine->getErrorMessage();
-        }
-    }
-
-    // create all the joints
-    foreach(QObject* point, linesPerPoint.keys()) {
-        QList<QObject*> lines = linesPerPoint[point];
-
-        if(lines.size() > 0) {
-            SketchJoint* newJoint = this->addJoint(point,lines);
-
-            if(!newJoint->isValid()) {
-                return newJoint->getErrorMessage();
-            }
-        }
-    }
-
-    qDebug() << "linesPerPoint: " << linesPerPoint;
-
-    // create a scene
-    aiScene* scene = this->generateScene();
-
-    Assimp::Exporter *exporter = new Assimp::Exporter();
-    aiReturn state = exporter->Export(scene, "collada", file.toStdString().c_str(), aiProcess_Triangulate);
-
-    delete exporter;
-    delete scene;
-
-    if(state == AI_SUCCESS) {
-        return true;
-    }
-    else if(state == AI_OUTOFMEMORY) {
-        return "Pas assez de mémoire vive pour terminer l'opération";
-    }
-    else {
-        return "Une erreur s'est produire lors de l'exportation";
-    }
 }
 

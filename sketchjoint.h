@@ -15,6 +15,7 @@ class SketchJoint : public SketchMesh
 {
 public:
     SketchJoint(QObject* point, QList<QObject*> lines);
+
     QList<QVector3D> getVertices();
     QList<QList<int>> getFaces();
 private:

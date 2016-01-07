@@ -1,5 +1,5 @@
 import QtQuick 2.0
-import "."
+import "." // to import Settings
 
 LineUi {
     z: 10
@@ -13,16 +13,10 @@ LineUi {
         isInsertable = computeIsInsertable()
     }
 
-    fill: isInsertable ? "blue" : "red"
-
+    fill: isInsertable ? Settings.insertLineIsInsertable : Settings.insertLineIsNotInsertable
 
     function computeIsInsertable() {
-            // minimum line length
         return getLine().width > Settings.minimalPointDistance
-            // minimum distance between points
-            // TODO: remove after the distance between lines will be removed
-            // points.every(function(x) { return x.distanceTo(to) >= Settings.minimalPointDistance });
-            // minimum distance between lines
     }
 }
 

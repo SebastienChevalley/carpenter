@@ -13,6 +13,18 @@ function SelectTool(context) {
         return this.mouseArea.pointContextMenu;
     }
 
+    this.lineContextMenu = function() {
+        return this.mouseArea.lineContextMenu;
+    }
+
+    this.hidePointContextMenu = function() {
+        this.pointContextMenu().visible = false;
+    }
+
+    this.hideLineContextMenu = function() {
+        this.lineContextMenu().visible = false;
+    }
+
     this.toolsMenu = function() {
         return this.mouseArea.toolsMenu;
     }
@@ -37,35 +49,44 @@ function SelectTool(context) {
     }
 
     this.disableEditFields = function() {
-        this.fields.widthEdit.enabled = false;
-        this.fields.verticalConstraint.enabled = false;
-        this.fields.horizontalConstraint.enabled = false;
-        console.log('widthEdit', this.fields.widthEdit.enabled);
-
+        this.lineContextMenu().widthEdit.enabled = false;
+        this.lineContextMenu().verticalConstraint.enabled = false;
+        this.lineContextMenu().horizontalConstraint.enabled = false;
+        console.log('widthEdit', this.lineContextMenu().widthEdit.enabled);
     }
 
     this.enableEditFields = function(item) {
         this.hidePointContextMenu();
+        this.hideLineContextMenu();
+
+        var isLine = item.hasOwnProperty("distanceFixed");
+
+        var menu = isLine
+                ? this.lineContextMenu()
+                : this.pointContextMenu();
+
+        var startPosition = isLine
+                ? item.computeIntermediatePoint()
+                : item.start;
+
+        this.contextMenuPosition(menu, startPosition);
 
         // line specific
-        if(item.hasOwnProperty("distanceFixed")) {
+        if(isLine) {
             var line = item;
-            this.fields.widthEdit.enabled = true;
+            menu.widthEdit.enabled = true;
 
             var fieldContent = line.distanceFixed ? line.desiredDistance : "";
-            this.fields.widthEdit.text = fieldContent;
+            menu.widthEdit.text = fieldContent;
 
-            this.fields.verticalConstraint.enabled = true;
-            this.fields.verticalConstraint.checked = line.verticallyConstrained;
+            menu.verticalConstraint.enabled = true;
+            menu.verticalConstraint.checked = line.verticallyConstrained;
 
-            this.fields.horizontalConstraint.enabled = true;
-            this.fields.horizontalConstraint.checked = line.horizontallyConstrained;
+            menu.horizontalConstraint.enabled = true;
+            menu.horizontalConstraint.checked = line.horizontallyConstrained;
         }
         // point specific
         else {
-            var menu = this.pointContextMenu();
-            this.contextMenuPosition(item.start);
-
             menu.cx.checked = item.cx;
             menu.cy.checked = item.cy;
             menu.cz.checked = item.cz;
@@ -73,12 +94,12 @@ function SelectTool(context) {
             menu.mx.checked = item.mx;
             menu.my.checked = item.my;
             menu.mz.checked = item.mz;
-
-            menu.visible = true;
         }
+
+        menu.visible = true;
     }
 
-    this.contextMenuPosition = function(position) {
+    this.contextMenuPosition = function(menu, position) {
         /*
          * place the point context menu
          * In general, the context menu will be placed horizontally
@@ -86,7 +107,6 @@ function SelectTool(context) {
          * following code tries to place it arround.
          */
         var canvas = { 'width': this.mouseArea.width, 'height': this.mouseArea.height };
-        var menu = this.pointContextMenu();
         var toolsMenu = this.toolsMenu();
         var width = menu.width;
         var height = menu.height;
@@ -152,29 +172,37 @@ function SelectTool(context) {
         menu.x = position.x + horizontalOffset;
     }
 
-    this.hidePointContextMenu = function() {
-        this.pointContextMenu().visible = false;
-    }
-
     this.enableWidthFieldSubmit = function() {
         console.log("enableWidthFieldSubmit", this);
 
         if(this.sketch.isMmPerPixelScaleSet()) {
-            this.sketch.setDesiredDistance(this.selectedItem.identifier, parseFloat(this.fields.widthEdit.text))
+            this.sketch.setDesiredDistance(
+                     this.selectedItem.identifier,
+                     parseFloat(this.lineContextMenu().widthEdit.text)
+            )
         }
         else {
-            this.sketch.setInitialScale(this.selectedItem.pointer.length(), parseFloat(this.fields.widthEdit.text));
+            this.sketch.setInitialScale(
+                     this.selectedItem.pointer.length(),
+                     parseFloat(this.lineContextMenu().widthEdit.text)
+            );
         }
     }
 
     this.verticalConstraintCheckboxHandler = function() {
-        console.log(this.fields.verticalConstraint.checked)
-        this.sketch.verticallyConstrainLine(this.selectedItem.identifier, this.fields.verticalConstraint.checked)
+        console.log(this.lineContextMenu().verticalConstraint.checked)
+        this.sketch.verticallyConstrainLine(
+                 this.selectedItem.identifier,
+                 this.lineContextMenu().verticalConstraint.checked
+        )
     }
 
     this.horizontalConstraintCheckboxHandler = function() {
-        console.log(this.fields.horizontalConstraint.checked)
-        this.sketch.horizontallyConstrainLine(this.selectedItem.identifier, this.fields.horizontalConstraint.checked)
+        console.log(this.lineContextMenu().horizontalConstraint.checked)
+        this.sketch.horizontallyConstrainLine(
+                 this.selectedItem.identifier,
+                 this.lineContextMenu().horizontalConstraint.checked
+        )
 
     }
 
@@ -225,9 +253,9 @@ SelectTool.prototype.onEnterTool = function() {
 
     this.disableEditFields();
 
-    this.fields.widthEdit.accepted.connect(this.editWidthHandler);
-    this.fields.verticalConstraint.clicked.connect(this.verticalConstraintCheckboxHandler);
-    this.fields.horizontalConstraint.clicked.connect(this.horizontalConstraintCheckboxHandler);
+    this.lineContextMenu().widthEdit.accepted.connect(this.editWidthHandler);
+    this.lineContextMenu().verticalConstraint.clicked.connect(this.verticalConstraintCheckboxHandler);
+    this.lineContextMenu().horizontalConstraint.clicked.connect(this.horizontalConstraintCheckboxHandler);
 }
 
 SelectTool.prototype.onLeaveTool = function() {
@@ -236,9 +264,9 @@ SelectTool.prototype.onLeaveTool = function() {
     this.disableEditFields();
     this.hidePointContextMenu();
 
-    this.fields.widthEdit.accepted.disconnect(this.editWidthHandler);
-    this.fields.verticalConstraint.clicked.disconnect(this.verticalConstraintCheckboxHandler);
-    this.fields.horizontalConstraint.clicked.disconnect(this.horizontalConstraintCheckboxHandler);
+    this.lineContextMenu().widthEdit.accepted.disconnect(this.editWidthHandler);
+    this.lineContextMenu().verticalConstraint.clicked.disconnect(this.verticalConstraintCheckboxHandler);
+    this.lineContextMenu().horizontalConstraint.clicked.disconnect(this.horizontalConstraintCheckboxHandler);
 }
 
 SelectTool.prototype.toString = function(){

@@ -1,6 +1,6 @@
 import QtQuick 2.0
 import QtQuick.Controls 1.4
-import "."
+import "." // to import Settings
 
 Point {
     id: insertPoint
@@ -10,13 +10,12 @@ Point {
 
     property MouseArea mouseArea : mouseArea
 
-
     Rectangle {
         id: point
         width: parent.selected ? Settings.pointSize * 1.8 : Settings.pointSize
         height: width
         radius: width / 2.0
-        color: parent.selected ? "blue" : pointColor
+        color: parent.selected ? Settings.insertPointSelected : pointColor
         x: start.x - radius
         y: start.y - radius
 

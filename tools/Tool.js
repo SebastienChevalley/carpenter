@@ -1,5 +1,4 @@
 
-
 function Tool(context) {
     var missingMethods = this.missingNeededMethods(this)
 

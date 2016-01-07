@@ -10,6 +10,16 @@
 #include <QVariantMap>
 #include <QVector2D>
 
+/**
+ * @brief The SketchLolExporter class
+ *
+ * SketchLolExporter allows to export the current
+ * sketch document in a flat text file.
+ *
+ * After qml registration, it can be used as a qml
+ * component like that :
+ * SketchLolExporter { sketch: mySketchComponent },
+ */
 class SketchLolExporter : public QObject {
     Q_OBJECT
 

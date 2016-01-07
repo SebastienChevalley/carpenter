@@ -2,11 +2,12 @@ import QtQuick 2.0
 import QtQuick.Controls.Styles 1.4
 import QtQuick.Controls 1.4
 import QtQuick.Layouts 1.2
-import "."
+import "." // to import Settings
 
 
 ButtonStyle {
     property string icon: ""
+    property string iconFont: "FontAwesome"
     id: style
     background: Rectangle {
         id: buttonBackground
@@ -22,7 +23,7 @@ ButtonStyle {
             Label {
                 y: 10
                 x: 5
-                font.family: "FontAwesome"
+                font.family: iconFont
                 font.pointSize: 16
                 text: icon
                 color: "#ffffff"

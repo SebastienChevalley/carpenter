@@ -1,7 +1,8 @@
 import QtQuick 2.0
+import "." // to import Settings
 
 InsertPoint {
-    pointColor: "red"
+    pointColor: Settings.intermediatePointColor
     property Line line;
     property Line lineUi;
     property real identifier: -1

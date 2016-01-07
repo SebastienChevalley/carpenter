@@ -78,13 +78,13 @@ QVariant SketchConstraintsSolver::solve() {
 
         QVector2D start = point->property("start").value<QVector2D>();
 
-        ConstrainedPoint* honk = new ConstrainedPoint(
+        QSharedPointer<ConstrainedPoint> newPoint(new ConstrainedPoint(
             start.x() - this->origin.x(),
             start.y() - this->origin.y(),
             point
-        );
+        ));
 
-        this->points[honk->identifier().toInt()] = honk;
+        this->points[newPoint->identifier().toInt()] = newPoint;
     }
 
     int horizontalAndVerticalConstraints = 0;
@@ -96,7 +96,9 @@ QVariant SketchConstraintsSolver::solve() {
         int start = line->property("startPoint").value<QObject*>()->property("identifier").toInt();
         int end = line->property("endPoint").value<QObject*>()->property("identifier").toInt();
 
-        qDebug() << "line [" << start << "," << end << "]";
+#ifdef CARPENTER_DEBUG
+        qDebug() << "SketchSolver: line [" << start << "," << end << "]";
+#endif
 
         bool vertical = line->property("verticallyConstrained").toBool();
         bool horizontal = line->property("horizontallyConstrained").toBool();
@@ -105,11 +107,8 @@ QVariant SketchConstraintsSolver::solve() {
 
         int identifier = line->property("identifier").toInt();
 
-        ConstrainedLine* cLine1 = new ConstrainedLine(this->points[start], this->points[end], identifier);
-        ConstrainedLine* cLine2 = new ConstrainedLine(this->points[end], this->points[start], identifier);
-
-        this->points[start]->increaseConstraintAmount();
-        this->points[end]->increaseConstraintAmount();
+        QSharedPointer<ConstrainedLine> cLine1(new ConstrainedLine(this->points[start], this->points[end], identifier));
+        QSharedPointer<ConstrainedLine> cLine2(new ConstrainedLine(this->points[end], this->points[start], identifier));
 
         if(distanceFixed) {
             double desiredDistance = line->property("desiredDistance").toDouble();
@@ -143,24 +142,25 @@ QVariant SketchConstraintsSolver::solve() {
     /*
      * Solve vertical and horizontal constraints
      */
-    QSet<ConstrainedPoint*> visited;
-    QQueue<ConstrainedPoint*> waitingList;
+    QSet<QSharedPointer<ConstrainedPoint>> visited;
+    QQueue<QSharedPointer<ConstrainedPoint>> waitingList;
 
     waitingList.enqueue(this->points.values().first());
-    first = true;
 
     int visitedEdge = 0;
     int appliedConstraints = 0;
     while(!waitingList.isEmpty()) {
-        ConstrainedPoint* current;
+        QSharedPointer<ConstrainedPoint> current;
 
         current = waitingList.dequeue();
 
-        qDebug() << "current: " << current->x.data()->value() << "," << current->y.data()->value() << "id:" << current->identifier();
+#ifdef CARPENTER_DEBUG
+        qDebug() << "SketchSolver: current: " << current->x().data()->value() << "," << current->y().data()->value() << "id:" << current->identifier();
+#endif
 
         visited += current;
 
-        foreach(ConstrainedLine* line, this->lines) {
+        foreach(QSharedPointer<ConstrainedLine> line, this->lines) {
             if(line->start == current && !visited.contains(line->end) && !waitingList.contains(line->end)) {
                 waitingList.enqueue(line->end);
             }
@@ -168,32 +168,20 @@ QVariant SketchConstraintsSolver::solve() {
             if(line->end == current && visited.contains(line->start)) {
                 visitedEdge++;
 
-
-                // it's the first point thus the origin
-                if(first) {
-                    first = false;
-                    if(!current->tryToSetX(current->x)) {
-                        return "Cannot set origin";
-                    }
-                    if(!current->tryToSetY(current->y)) {
-                        return "Cannot set origin";
-                    }
-                }
-
                 if(line->isHorizontalConstrained()) {
                     appliedConstraints++;
-                    qDebug() << "try to constrain horizontally:" << line->end->x.data()->value() <<","<< line->end->y.data()->value();
-                    if(!current->tryToSetY(line->start->y)) {
-                        return "Conflict on horizontal constraints";
-                    }
+#ifdef CARPENTER_DEBUG
+                    qDebug() << "SketchSolver: try to constrain horizontally:" << line->end->x().data()->value() <<","<< line->end->y().data()->value();
+#endif
+                    current->setY(line->start->y());
                 }
 
                 if(line->isVerticallyConstrained()) {
                     appliedConstraints++;
-                    qDebug() << "try to constrain vertically:" << line->end->x.data()->value() <<","<< line->end->y.data()->value();
-                    if(!current->tryToSetX(line->start->x)) {
-                        return "Conflict on vertical constraints";
-                    }
+#ifdef CARPENTER_DEBUG
+                    qDebug() << "SketchSolver: try to constrain vertically:" << line->end->x().data()->value() <<","<< line->end->y().data()->value();
+#endif
+                    current->setX(line->start->x());
                 }
             }
         }
@@ -216,16 +204,16 @@ QVariant SketchConstraintsSolver::solve() {
     QMap<QString, int> identifierToSolvePointsIndex;
 
     int i = 0;
-    foreach(ConstrainedPoint* point, this->points) {
-        if(!point->fixedX) {
-            parameters.append(point->x.data()->address());
+    foreach(QSharedPointer<ConstrainedPoint> point, this->points) {
+        if(!point->fixedX()) {
+            parameters.append(point->x().data()->address());
         }
-        if(!point->fixedY) {
-            parameters.append(point->y.data()->address());
+        if(!point->fixedY()) {
+            parameters.append(point->y().data()->address());
         }
 
-        solvePoints[i].x = point->x.data()->address().data();
-        solvePoints[i].y = point->y.data()->address().data();
+        solvePoints[i].x = point->x().data()->address().data();
+        solvePoints[i].y = point->y().data()->address().data();
 
         identifierToSolvePointsIndex.insert(point->identifier(), i);
 
@@ -238,7 +226,7 @@ QVariant SketchConstraintsSolver::solve() {
 
     i = 0;
     int constraintIndex = 0;
-    foreach(ConstrainedLine* line, this->lines) {
+    foreach(QSharedPointer<ConstrainedLine> line, this->lines) {
         if(!identifiersSeen.contains(line->identifier)) {
             identifiersSeen += line->identifier;
 
@@ -247,7 +235,7 @@ QVariant SketchConstraintsSolver::solve() {
 
             if(line->isDistanceFixed()) {
                 constraints[constraintIndex].line1 = solveLines[i];
-                lengthParameters += line->desiredDistance * pixelPerMmScale;
+                lengthParameters += line->getDesiredDistance() * pixelPerMmScale;
                 constraints[constraintIndex].type = lineLength;
                 constraints[constraintIndex].parameter = &lengthParameters.last();
 
@@ -278,27 +266,33 @@ QVariant SketchConstraintsSolver::solve() {
         i++;
     }
 
-    qDebug() << "line constraints";
-    qDebug() << "----------------\n";
-    qDebug() << "constraints: " << this->constraints.size();
-    qDebug() << "parameters: " << parameters.size();
+#ifdef CARPENTER_DEBUG
+    qDebug() << "SketchSolver: line constraints";
+    qDebug() << "SketchSolver: ----------------\n";
+    qDebug() << "SketchSolver: constraints: " << this->constraints.size();
+    qDebug() << "SketchSolver: parameters: " << parameters.size();
 
-    qDebug() << "solver";
-    qDebug() << "------";
-    qDebug() << "constraintsIndex:" << constraintIndex;
-    qDebug() << "total constraints:" << totalConstraints;
+    qDebug() << "SketchSolver: solver";
+    qDebug() << "SketchSolver: ------";
+    qDebug() << "SketchSolver: constraintsIndex:" << constraintIndex;
+    qDebug() << "SketchSolver: total constraints:" << totalConstraints;
+#endif
 
 
     int result = ::solve(pparameters, parameters.size(), constraints, totalConstraints, fine);
 
     if(result == succsess) {
-        qDebug() << "solution found";
-        qDebug() << "visited edges" << visitedEdge;
-        qDebug() << "applied constraints" << appliedConstraints;
+#ifdef CARPENTER_DEBUG
+        qDebug() << "SketchSolver: solution found";
+        qDebug() << "SketchSolver: visited edges" << visitedEdge;
+        qDebug() << "SketchSolver: applied constraints" << appliedConstraints;
+#endif
 
-        foreach(ConstrainedPoint* point, this->points) {
-            qDebug() << "(" << point->x.data()->value() << "," << point->y.data()->value() << ")";
-            qDebug() << point->identifier();
+        foreach(QSharedPointer<ConstrainedPoint> point, this->points) {
+#ifdef CARPENTER_DEBUG
+            qDebug() << "SketchSolver: (" << point->x().data()->value() << "," << point->y().data()->value() << ")";
+            qDebug() << "SketchSolver: " << point->identifier();
+#endif
         }
 
         this->solved = true;
@@ -315,18 +309,21 @@ QVariant SketchConstraintsSolver::solve() {
 
 void SketchConstraintsSolver::applyOnSketch() {
     if(!this->solved) {
-        qDebug() << "the sketch wasn'tsolved";
+#ifdef CARPENTER_DEBUG
+        qDebug() << "SketchSolver: the sketch wasn't solved";
+#endif
         return;
     }
 
     QVariantMap map;
 
-    foreach(ConstrainedPoint* point, this->points) {
-        map.insert(point->identifier(), QVector2D(point->x.data()->value(), point->y.data()->value()));
+    foreach(QSharedPointer<ConstrainedPoint> point, this->points) {
+        map.insert(point->identifier(), QVector2D(point->x().data()->value(), point->y().data()->value()));
     }
 
-
-    qDebug() << map;
+#ifdef CARPENTER_DEBUG
+    qDebug() << "SketchSolver: new points per identifier " << map;
+#endif
 
     QVariant returnedValue;
     QMetaObject::invokeMethod(this->sketch, "movePoints",

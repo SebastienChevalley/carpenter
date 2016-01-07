@@ -1,4 +1,5 @@
 import QtQuick 2.0
+import "." // to import Settings
 
 Item {
     property vector2d start;

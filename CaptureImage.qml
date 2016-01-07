@@ -3,14 +3,15 @@ import QtMultimedia 5.5
 import QtQuick.Layouts 1.2
 import QtQuick.Controls 1.4
 
+import "." // to import Settings
+
 Rectangle {
     anchors.fill: parent
     z:900
-    color: "black"
+    color: Settings.captureImagePanelBackground
     id: capturePanel
 
     onVisibleChanged: {
-        console.log("visibility changed:", visible)
         if(visible) {
             camera.start()
             previewPane.visible = false
@@ -22,7 +23,6 @@ Rectangle {
 
         imageCapture {
             onImageCaptured: {
-                console.log("onImageCaptured")
                 photoPreview.source = preview
                 previewPane.visible = true
             }
@@ -33,12 +33,11 @@ Rectangle {
         id: videoOutput
         source: camera
         anchors.fill: parent
-        fillMode: Image.PreserveAspectCrop
+        fillMode: Settings.backgroundFillMode
 
         MouseArea {
             anchors.fill: parent
             onPressed: {
-                console.log("ciao")
                 camera.imageCapture.capture()
             }
         }
@@ -51,7 +50,7 @@ Rectangle {
 
         Image {
             id: photoPreview
-            fillMode: Image.PreserveAspectCrop
+            fillMode: Settings.backgroundFillMode
             anchors.fill: parent
         }
 

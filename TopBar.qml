@@ -3,6 +3,7 @@ import QtQuick.Controls 1.4
 import QtQuick.Layouts 1.2
 import QtMultimedia 5.5
 import QtQuick.Controls.Styles 1.4
+import "." // to import Settings
 
 Rectangle {
     id: menuBar
@@ -23,7 +24,7 @@ Rectangle {
             Layout.fillWidth: true
             Layout.minimumWidth: 100
             text: "Sketch"
-            color: "#222222"
+            color: Settings.topBarLabelColor
             font.pointSize: 18
         }
 

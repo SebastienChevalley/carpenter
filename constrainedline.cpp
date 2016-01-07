@@ -1,7 +1,9 @@
 #include "constrainedline.h"
 #include <QDebug>
 
-ConstrainedLine::ConstrainedLine(ConstrainedPoint* start, ConstrainedPoint* end, int identifier)
+ConstrainedLine::ConstrainedLine(QSharedPointer<ConstrainedPoint> start,
+                                 QSharedPointer<ConstrainedPoint> end,
+                                 int identifier)
 {
     this->identifier = identifier;
     this->horizontal = false;
@@ -12,19 +14,19 @@ ConstrainedLine::ConstrainedLine(ConstrainedPoint* start, ConstrainedPoint* end,
 }
 
 ConstrainedLine* ConstrainedLine::horizontallyConstrained() {
-    qDebug() << "horizontal constrained";
+#ifdef CARPENTER_DEBUG
+    qDebug() << "ConstrainedLine: horizontal constrained";
+#endif
     this->horizontal = true;
     return this;
 }
 
 ConstrainedLine* ConstrainedLine::verticallyConstrained() {
-    qDebug() << "vertical constrained";
+#ifdef CARPENTER_DEBUG
+    qDebug() << "ConstrainedLine: vertical constrained";
+#endif
     this->vertical = true;
     return this;
-}
-
-ConstrainedLine::operator QString() const {
-    return "Line";
 }
 
 bool ConstrainedLine::isVerticallyConstrained() {

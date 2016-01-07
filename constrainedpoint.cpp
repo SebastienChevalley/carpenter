@@ -7,57 +7,54 @@
 ConstrainedPoint::ConstrainedPoint(double x, double y, QObject* point)
 {
     this->relatedPoint = point;
-    this->x = QSharedPointer<Parameter>(new Parameter(x));
+    this->_x = QSharedPointer<Parameter>(new Parameter(x));
 
-    this->y = QSharedPointer<Parameter>(new Parameter(y));
+    this->_y = QSharedPointer<Parameter>(new Parameter(y));
 
-    this->fixedX = false;
-    this->fixedY = false;
-    this->constraintAmount = 0;
+    this->_fixedX = false;
+    this->_fixedY = false;
 }
 
-bool ConstrainedPoint::tryToSetX(QSharedPointer<Parameter> x) {
-    if(this->fixedX) {
+void ConstrainedPoint::setX(QSharedPointer<Parameter> x) {
+    if(this->_fixedX) {
         // already fixed, need to replace argument x's pointer
-        (*(x)).setValue((*(this->x)).address());
+        (*(x)).setValue((*(this->_x)).address());
     }
     else {
-        this->fixedX = true;
+        this->_fixedX = true;
     }
-    this->x = x;
-
-    return true;
+    this->_x = x;
 }
 
-bool ConstrainedPoint::tryToSetY(QSharedPointer<Parameter> y) {
-    if(this->fixedY) {
+void ConstrainedPoint::setY(QSharedPointer<Parameter> y) {
+    if(this->_fixedY) {
         // already fixed, need to replace argument y's pointer
-        (*(y)).setValue((*(this->y)).address());
+        (*(y)).setValue((*(this->_y)).address());
     }
     else {
-        this->fixedY = true;
+        this->_fixedY = true;
     }
 
-    this->y = y;
-    return true;
-}
-
-QVector2D ConstrainedPoint::point() {
-    return QVector2D((*(this->x)).value(),(*(this->y)).value());
-}
-
-ConstrainedPoint::operator QString() const {
-    return "Point";
+    this->_y = y;
 }
 
 QString ConstrainedPoint::identifier() {
     return this->relatedPoint->property("identifier").toString();
 }
 
-void ConstrainedPoint::increaseConstraintAmount() {
-    this->constraintAmount++;
+QSharedPointer<Parameter> ConstrainedPoint::x() {
+    return this->_x;
 }
 
-int ConstrainedPoint::getConstraintAmount() {
-    return this->constraintAmount;
+QSharedPointer<Parameter> ConstrainedPoint::y() {
+    return this->_y;
 }
+
+bool ConstrainedPoint::fixedX() {
+    return this->_fixedX;
+}
+
+bool ConstrainedPoint::fixedY() {
+    return this->_fixedY;
+}
+

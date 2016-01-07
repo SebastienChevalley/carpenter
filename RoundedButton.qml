@@ -3,6 +3,7 @@ import QtQuick.Controls.Styles 1.4
 import QtQuick.Controls 1.4
 import QtQuick.Layouts 1.2
 
+import "." // to import Settings
 
 
 ButtonStyle {
@@ -13,7 +14,7 @@ ButtonStyle {
         border.width: 1
         radius: 5
         id: buttonBackground
-        color: control.pressed ? "#22000000" : "transparent"
+        color: control.pressed ? Settings.roundedButtonSelectedBackground : Settings.roundedButtonBackground
     }
     label: RowLayout {
         Rectangle {
@@ -26,7 +27,7 @@ ButtonStyle {
                 font.family: "FontAwesome"
                 font.pointSize: 16
                 text: icon
-                color: "#222222"
+                color: Settings.roundedButtonLabelColor
             }
         }
 
@@ -36,7 +37,7 @@ ButtonStyle {
             color: "transparent"
             Label {
                 y: 5
-                color: "#222222"
+                color: Settings.roundedButtonLabelColor
                 text: control.text
             }
         }
