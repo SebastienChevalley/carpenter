@@ -34,11 +34,21 @@ RESOURCES += qml.qrc
 
 DEFINES += CARPENTER_DEBUG
 
-mac {
+macx {
     INCLUDEPATH += /usr/local/include/
 
     LIBS += /usr/local/lib/libassimp.dylib
-    LIBS += /usr/local/lib/libopencv_core.2.4.dylib
+}
+linux {
+    INCLUDEPATH += /usr/local/include/
+
+    LIBS += -L/usr/local/lib
+    LIBS += -lassimp
+}
+win {
+    INCLUDEPATH += C:\Users\Sfimx\Downloads\assimp-3.1.1-win-binaries\assimp-3.1.1-win-binaries\include
+
+    LIBS += C:\Users\Sfimx\Downloads\assimp-3.1.1-win-binaries\assimp-3.1.1-win-binaries\lib64 -lassimp
 }
 android {
 
