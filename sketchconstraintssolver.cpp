@@ -2,10 +2,7 @@
 
 #include <QDebug>
 #include <QVariant>
-#include "opencv2/core/core.hpp"
-#include "opencv2/core/mat.hpp"
 #include "solve.h"
-using namespace cv;
 
 SketchConstraintsSolver::SketchConstraintsSolver(QObject *parent) : QObject(parent) {
 
