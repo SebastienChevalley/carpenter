@@ -17,12 +17,9 @@ function SelectTool(context) {
         return this.mouseArea.lineContextMenu;
     }
 
-    this.hidePointContextMenu = function() {
-        this.pointContextMenu().visible = false;
-    }
-
-    this.hideLineContextMenu = function() {
+    this.hideContextMenus = function() {
         this.lineContextMenu().visible = false;
+        this.pointContextMenu().visible = false;
     }
 
     this.toolsMenu = function() {
@@ -56,8 +53,7 @@ function SelectTool(context) {
     }
 
     this.enableEditFields = function(item) {
-        this.hidePointContextMenu();
-        this.hideLineContextMenu();
+        this.hideContextMenus();
 
         var isLine = item.hasOwnProperty("distanceFixed");
 
@@ -234,7 +230,8 @@ SelectTool.prototype.onPressed = function() {
     // fired when no lines has been clicked, deselect everything:
     _.forEach(this.getItems(), function(item) {
         item.selected = false;
-        this.hidePointContextMenu();
+        this.hideContextMenus();
+
     }, this);
 
     this.disableEditFields.bind(this)();
@@ -262,7 +259,7 @@ SelectTool.prototype.onLeaveTool = function() {
     _.forEach(this.getItems(), this.itemLeaveHandler, this);
 
     this.disableEditFields();
-    this.hidePointContextMenu();
+    this.hideContextMenus();
 
     this.lineContextMenu().widthEdit.accepted.disconnect(this.editWidthHandler);
     this.lineContextMenu().verticalConstraint.clicked.disconnect(this.verticalConstraintCheckboxHandler);
