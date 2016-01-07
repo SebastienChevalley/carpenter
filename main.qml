@@ -28,6 +28,7 @@ Window {
 
         property var captureImage : Qt.createComponent("CaptureImage.qml");
         property var captureImagePanel : null;
+        property Sketch sketch: sketch;
 
         states: [
             State {
@@ -94,7 +95,8 @@ Window {
                 mouseArea[toolItem(previousTool)].onLeaveTool();
                 mouseArea[toolItem(newTool)].onEnterTool();
 
-                message.displayInfoMessage("Selected tool: " + name);
+                // Could be used if you want a message on every tool changes
+                // message.displayInfoMessage("Selected tool: " + name);
 
                 currentTool = newTool
             }
@@ -113,11 +115,6 @@ Window {
         function hideCameraPanel() {
             mouseArea.enabled = true
             captureImagePanel.visible = false
-        }
-
-        function setBackgroundImage(path) {
-            console.log("setBackgroundPath:", path)
-            backgroundImage.source = path;
         }
 
         MenuItem { id: menuItems }
@@ -160,6 +157,7 @@ Window {
                     anchors.fill: parent
                     fillMode: Settings.backgroundFillMode
                     opacity: 0.5
+                    source: sketch.isBackgroundSet() ? sketch.getBackground() : ""
                 }
 
                 MouseArea {

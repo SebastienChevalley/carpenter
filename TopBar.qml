@@ -35,8 +35,12 @@ Rectangle {
             }
 
             onClicked: {
-                console.log(QtMultimedia.availableCameras);
-                //mainForm.displayCameraPanel()
+                if(QtMultimedia.availableCameras.length === 0) {
+                    message.displayErrorMessage("No camera available");
+                }
+                else {
+                    mainForm.displayCameraPanel()
+                }
             }
         }
 
@@ -73,7 +77,12 @@ Rectangle {
                 console.log("exportResult: ", exportResult);
 
                 if(exportResult === true) {
-                    message.displaySuccessMessage("3D export succeed")
+                    if(lolExportResult !== true) {
+                        message.displayErrorMessage("Text file export failed: " + lolExportResult)
+                    }
+                    else {
+                        message.displaySuccessMessage("3D export succeed")
+                    }
                 }
                 else {
                     message.displayErrorMessage("3D export failed : " + exportResult);

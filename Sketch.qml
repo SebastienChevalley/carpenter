@@ -23,6 +23,10 @@ Item {
         'scale': {
             'set': false,
             'mmPerPixel': 0.0
+        },
+        'background' : {
+            'set': false,
+            'url': ''
         }
     };
 
@@ -628,6 +632,20 @@ Item {
         });
 
         return _.assign({}, store, { 'lines': updatedLines })
+    }
+
+    signal setBackground(string url);
+
+    onSetBackground: {
+        updateStore(_.assign({}, store, { 'background': { 'set': true, 'url': url }}));
+    }
+
+    function isBackgroundSet() {
+        return store.background.set;
+    }
+
+    function getBackground() {
+        return store.background.url;
     }
 
     function updateItemInCollection(collection, indexOf, newItem) {
