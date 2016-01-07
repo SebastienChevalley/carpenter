@@ -23,7 +23,7 @@ SketchPoint::SketchPoint(QObject* point)
 
     int numberOfSides = 40;
     float angle = 360.f / numberOfSides;
-    float radius = 5.0f;
+    float radius = 20.0f;
 
     int numberOfVertices = numberOfSides * 2 + 2;
     int numberOfFaces = numberOfSides * 4;
@@ -32,7 +32,7 @@ SketchPoint::SketchPoint(QObject* point)
 
 
     for(int i = 0; i < numberOfVertices; i++) {
-        float height = i >= numberOfSides ^ i == numberOfSides * 2 ? length : 0.f;
+        float height = (i >= numberOfSides) ^ (i == numberOfSides * 2) ? length : 0.f;
         if(i >= numberOfSides * 2) {
             //cylinderVertices.push_back(glm::vec3(0.f, 0.f, height));
             vertices << QVector3D(0.f, 0.f, height);
@@ -47,8 +47,9 @@ SketchPoint::SketchPoint(QObject* point)
 
     for(int i = 0; i < vertices.size(); i++) {
         QVector3D current = vertices.at(i);
-        //qDebug() << "SketchPoint vertex " << current;
-        vertices.replace(i, QVector3D(current.x() + translate.x(), current.y() + translate.y(), current.z() + translate.z()));
+        QVector3D to = QVector3D(current.x() + translate.x(), current.y() + translate.y(), current.z() + translate.z());
+        //qDebug() << "SketchPoint vertex " << current << "to" << to;
+        vertices.replace(i, to);
     }
 
     int bottomCenter = numberOfSides * 2;
@@ -59,12 +60,15 @@ SketchPoint::SketchPoint(QObject* point)
         // top and bottom
         if(i < numberOfSides) {
             face << k << ((k + 1) % numberOfSides) << bottomCenter;
+            faces << face;
+            face.clear();
             //qDebug() << "insert faces" << i << faces.last();
 
 
             if((i*2+1) < numberOfFaces) {
                 face << (k + numberOfSides) << ((k + 1) % numberOfSides + numberOfSides) << topCenter;
                 //qDebug() << "insert faces" << i << faces.last();
+                faces << face;
 
             }
         }
@@ -75,18 +79,19 @@ SketchPoint::SketchPoint(QObject* point)
             }
 
             face << k << (k + numberOfSides) << ((k + 1) % numberOfSides + numberOfSides);
+            faces << face;
+            face.clear();
             //qDebug() << "insert faces" << i << faces.last();
 
 
             if((i*2+1) < numberOfFaces) {
                 face << k << ((k + 1) % numberOfSides) << ((k + 1) % numberOfSides + numberOfSides);
                 //qDebug() << "insert faces" << i << faces.last();
+                faces << face;
 
             }
+
         }
-
-        faces << face;
-
 
         k++;
     }

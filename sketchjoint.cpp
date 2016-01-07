@@ -105,7 +105,7 @@ SketchJoint::SketchJoint(QObject* rawPoint, QList<QObject*> lines) {
 
         QVector2D pointer = pointerProperty.value<QVector2D>().normalized();
         if(endPointProperty.value<QObject*>() == rawPoint) {
-            //qDebug() << "return the pointer";
+            //qDebug() << "invert the pointer";
             pointer *= -1.0f;
         }
 

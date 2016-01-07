@@ -111,6 +111,10 @@ QVariant SketchConverter::exportToFile(QObject* sketch, QString file) {
     // collect the line per node
     QMap<QObject*, QList<QObject*>> linesPerPoint;
 
+    foreach(QVariant rawPoint, points) {
+        meshes << new SketchPoint(rawPoint.value<QObject*>());
+    }
+
     foreach(QVariant line, lines) {
         QObject* lineObject = line.value<QObject*>();
 
