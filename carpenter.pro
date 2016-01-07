@@ -45,10 +45,10 @@ linux {
     LIBS += -L/usr/local/lib
     LIBS += -lassimp
 }
-win {
+win32  {
     INCLUDEPATH += C:\Users\Sfimx\Downloads\assimp-3.1.1-win-binaries\assimp-3.1.1-win-binaries\include
 
-    LIBS += C:\Users\Sfimx\Downloads\assimp-3.1.1-win-binaries\assimp-3.1.1-win-binaries\lib64 -lassimp
+    LIBS += C:\Users\Sfimx\Downloads\assimp-3.1.1-win-binaries\assimp-3.1.1-win-binaries\lib32 -lassimp
 }
 android {
 
