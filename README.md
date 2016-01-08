@@ -8,6 +8,8 @@ Built with Qt and QML. Works under GNU/Linux, Mac and Windows OS
 
 [Assimp](https://github.com/assimp/assimp)
 
+Must be built with GCC because of VLA usage
+
 ## Third party 
 
 * [FontAwesome](https://fortawesome.github.io/Font-Awesome/) : [SIL OFL 1.1](http://scripts.sil.org/OFL)
