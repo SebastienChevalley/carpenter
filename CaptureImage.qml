@@ -23,7 +23,7 @@ Rectangle {
 
         imageCapture {
             onImageCaptured: {
-                photoPreview.source = Settings.backgroundImagePath
+                photoPreview.source = preview
                 previewPane.visible = true
             }
         }
@@ -84,7 +84,7 @@ Rectangle {
             onClicked: {
                 previewPane.visible = false
                 mainForm.hideCameraPanel()
-                mainForm.sketch.setBackground(Settings.backgroundImagePath)
+                mainForm.sketch.setBackground(photoPreview.source)
 
             }
         }

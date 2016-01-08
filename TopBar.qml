@@ -70,10 +70,10 @@ Rectangle {
             }
 
             onClicked: {
-                var lolExportResult = mouseArea.lolExporter.exportToFile("model");
+                var lolExportResult = mouseArea.lolExporter.exportToFile(Settings.assetsExportPath + "model");
                 console.log("lolExportResult", lolExportResult);
 
-                var exportResult = mouseArea.converter.exportToFile(sketch, "./output.dae");
+                var exportResult = mouseArea.converter.exportToFile(sketch, Settings.assetsExportPath + "output.dae");
                 console.log("exportResult: ", exportResult);
 
                 if(exportResult === true) {

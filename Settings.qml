@@ -8,7 +8,8 @@ QtObject {
 
     readonly property string defaultTool : "InsertTool"
 
-    readonly property string backgroundImagePath: "background.jpg";
+    readonly property string assetsExportPath: "./"
+    readonly property string backgroundImagePath: assetsExportPath + "background.jpg";
 
     readonly property color selectedColor: "blue"
     readonly property color labelColor: "#222222"
