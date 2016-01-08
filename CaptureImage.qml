@@ -22,9 +22,8 @@ Rectangle {
         id: camera
 
         imageCapture {
-            capturedImagePath: "."
             onImageCaptured: {
-                photoPreview.source = preview
+                photoPreview.source = Settings.backgroundImagePath
                 previewPane.visible = true
             }
         }
@@ -39,7 +38,7 @@ Rectangle {
         MouseArea {
             anchors.fill: parent
             onPressed: {
-                camera.imageCapture.capture()
+                camera.imageCapture.captureToLocation(Settings.backgroundImagePath)
             }
         }
     }
@@ -85,7 +84,7 @@ Rectangle {
             onClicked: {
                 previewPane.visible = false
                 mainForm.hideCameraPanel()
-                mainForm.sketch.setBackground(photoPreview.source)
+                mainForm.sketch.setBackground(Settings.backgroundImagePath)
 
             }
         }
