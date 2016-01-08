@@ -9,6 +9,7 @@
 #include <QTextStream>
 #include <QVariantMap>
 #include <QVector2D>
+#include "sketchline.h"
 
 /**
  * @brief The SketchLolExporter class

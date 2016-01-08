@@ -167,9 +167,9 @@ QVariant SketchLolExporter::exportToFile(QString path) {
                << pointToLolIndex[idStart] << ","
                << pointToLolIndex[idEnd] << ","
                << pointer.length() << ","
-               << "5" << ","
-               << "" << ","
-               << "" << ","
+               << (SketchLine::radius * 2) << ","
+               << "20000" << ","
+               << "1250" << ","
                << "0.50e-9"
                << endl;
     }
