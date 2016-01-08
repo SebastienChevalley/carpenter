@@ -62,6 +62,7 @@ Line {
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.verticalCenter: parent.verticalCenter
             font.pointSize: 16
+            visible: Settings.displayIdentifier
         }
 
         MouseArea {

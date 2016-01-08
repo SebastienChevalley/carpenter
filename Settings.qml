@@ -11,6 +11,8 @@ QtObject {
     readonly property string assetsExportPath: "./"
     readonly property string backgroundImagePath: assetsExportPath + "background.jpg";
 
+    readonly property bool displayIdentifier: false;
+
     readonly property color selectedColor: "blue"
     readonly property color labelColor: "#222222"
 

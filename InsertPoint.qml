@@ -27,6 +27,7 @@ Point {
             anchors.verticalCenter: parent.verticalCenter
             font.pointSize: 16
             color: "white"
+            visible: Settings.displayIdentifier
         }
 
 
