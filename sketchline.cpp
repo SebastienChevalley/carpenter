@@ -50,8 +50,8 @@ SketchLine::SketchLine(QObject* line, QMap<QObject*, QList<QObject*>> linesPerPo
     float length = pointer.length();
 
 
-    bool cutStart = linesPerPoint.contains(startPoint);
-    bool cutEnd = linesPerPoint.contains(endPoint);
+    bool cutStart = linesPerPoint.contains(startPoint) && linesPerPoint[startPoint].length() > 1;
+    bool cutEnd = linesPerPoint.contains(endPoint) && linesPerPoint[endPoint].length() > 1;
 
     if(cutStart) {
         start += direction * SketchLine::edgeShortcut;
