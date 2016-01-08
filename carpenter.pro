@@ -67,8 +67,7 @@ QML_IMPORT_PATH =
 include(deployment.pri)
 
 DISTFILES += \
-    qmldir \
-    empty.dae
+    qmldir
 
 #QMAKE_CC=/usr/local/Cellar/gcc/5.2.0/bin/g++-5
 #QMAKE_CXX=/usr/local/Cellar/gcc/5.2.0/bin/g++-5
