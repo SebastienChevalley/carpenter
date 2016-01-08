@@ -32,7 +32,12 @@ HEADERS += sketch_converter.h \
 
 RESOURCES += qml.qrc
 
+# enable debug
 DEFINES += CARPENTER_DEBUG
+# enable using SketchPoint as joint component
+#DEFINES += CARPENTER_USE_SKETCHPOINT
+# enable using SketchJoint as joint component
+DEFINES += CARPENTER_USE_SKETCHJOINT
 
 macx {
     INCLUDEPATH += /usr/local/include/

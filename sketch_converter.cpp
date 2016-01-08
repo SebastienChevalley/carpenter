@@ -79,6 +79,8 @@ bool SketchConverter::exportToFile(QObject* sketch, QString file, QString& error
     // collect the line per node
     QMap<QObject*, QList<QObject*>> linesPerPoint;
 
+
+#ifdef CARPENTER_USE_SKETCHPOINT
     foreach(QVariant rawPoint, points) {
         QSharedPointer<SketchPoint> sketchPoint = this->addPoint(rawPoint.value<QObject*>());
 
@@ -87,6 +89,7 @@ bool SketchConverter::exportToFile(QObject* sketch, QString file, QString& error
             return false;
         }
     }
+#endif
 
     foreach(QVariant line, lines) {
         QObject* lineObject = line.value<QObject*>();
@@ -121,6 +124,7 @@ bool SketchConverter::exportToFile(QObject* sketch, QString file, QString& error
         }
     }
 
+#ifdef CARPENTER_USE_SKETCHJOINT
     // create all the joints
     foreach(QObject* point, linesPerPoint.keys()) {
         QList<QObject*> lines = linesPerPoint[point];
@@ -134,6 +138,8 @@ bool SketchConverter::exportToFile(QObject* sketch, QString file, QString& error
             }
         }
     }
+#endif
+
 #ifdef CARPENTER_DEBUG
     qDebug() << "SketchConverter: linesPerPoint: " << linesPerPoint;
 #endif

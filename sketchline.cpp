@@ -49,7 +49,7 @@ SketchLine::SketchLine(QObject* line, QMap<QObject*, QList<QObject*>> linesPerPo
     float radius = SketchLine::radius;
     float length = pointer.length();
 
-
+#ifdef CARPENTER_USE_SKETCHJOINT
     bool cutStart = linesPerPoint.contains(startPoint) && linesPerPoint[startPoint].length() > 1;
     bool cutEnd = linesPerPoint.contains(endPoint) && linesPerPoint[endPoint].length() > 1;
 
@@ -60,6 +60,7 @@ SketchLine::SketchLine(QObject* line, QMap<QObject*, QList<QObject*>> linesPerPo
     if(cutEnd) {
         length -= SketchLine::edgeShortcut;
     }
+#endif
 
     QVector3D a = QVector3D(radius, 0, radius);
     QVector3D b = QVector3D(-radius, 0, radius);
