@@ -80,7 +80,12 @@ bool SketchConverter::exportToFile(QObject* sketch, QString file, QString& error
     QMap<QObject*, QList<QObject*>> linesPerPoint;
 
     foreach(QVariant rawPoint, points) {
-        this->addPoint(rawPoint.value<QObject*>());
+        QSharedPointer<SketchPoint> sketchPoint = this->addPoint(rawPoint.value<QObject*>());
+
+        if(!(*sketchPoint).isValid()) {
+            error = sketchPoint->getErrorMessage();
+            return false;
+        }
     }
 
     foreach(QVariant line, lines) {

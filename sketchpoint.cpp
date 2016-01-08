@@ -14,6 +14,7 @@ SketchPoint::SketchPoint(QObject* point)
 #ifdef CARPENTER_DEBUG
         qDebug() << "SketchPoint: start not valid";
 #endif
+        this->setErrorMessage("Start point given is not valid");
         return;
     }
 
@@ -101,7 +102,7 @@ SketchPoint::SketchPoint(QObject* point)
         k++;
     }
 
-
+    this->setValid(true);
 }
 
 QList<QVector3D> SketchPoint::getVertices() {
