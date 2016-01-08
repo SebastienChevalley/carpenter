@@ -22,6 +22,7 @@ Rectangle {
         id: camera
 
         imageCapture {
+            capturedImagePath: "."
             onImageCaptured: {
                 photoPreview.source = preview
                 previewPane.visible = true
