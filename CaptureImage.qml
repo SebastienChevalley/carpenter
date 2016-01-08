@@ -84,7 +84,7 @@ Rectangle {
             onClicked: {
                 previewPane.visible = false
                 mainForm.hideCameraPanel()
-                mainForm.sketch.setBackground(photoPReview.source)
+                mainForm.sketch.setBackground(photoPreview.source)
 
             }
         }
