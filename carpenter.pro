@@ -51,9 +51,10 @@ linux {
     LIBS += -lassimp
 }
 win32  {
-    INCLUDEPATH += C:\Users\Sfimx\Downloads\assimp-3.1.1-win-binaries\assimp-3.1.1-win-binaries\include
+    # build or download binaries from : https://bruceoutdoors.wordpress.com/2014/08/22/building-assimp-3-with-mingw-4-8/
+    INCLUDEPATH += C:\Assimp3-1-1_MinGW4-8-1_Win32\include
 
-    LIBS += C:\Users\Sfimx\Downloads\assimp-3.1.1-win-binaries\assimp-3.1.1-win-binaries\lib32 -lassimp
+    LIBS += -LC:\Assimp3-1-1_MinGW4-8-1_Win32\ -lassimp
 }
 android {
 
