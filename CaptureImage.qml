@@ -11,10 +11,28 @@ Rectangle {
     color: Settings.captureImagePanelBackground
     id: capturePanel
 
+    property bool previewPaneVisible: false;
+
     onVisibleChanged: {
         if(visible) {
             camera.start()
-            previewPane.visible = false
+            previewPaneVisible = false
+        }
+    }
+
+    Rectangle {
+        anchors.centerIn: parent
+        color: "#20FFFFFF"
+        border.color: "#80FFFFFF"
+        radius:5;
+        z:100
+        width: childrenRect.width + 20;
+        height: childrenRect.height + 20;
+        visible: !previewPaneVisible
+
+        Label {
+            text: "Touch the screen to take a picture"
+            color: "#ffffff"
         }
     }
 
@@ -22,9 +40,14 @@ Rectangle {
         id: camera
 
         imageCapture {
+            resolution: Qt.size(1920,1080)
             onImageCaptured: {
                 photoPreview.source = preview
-                previewPane.visible = true
+                previewPaneVisible = true
+            }
+            onImageSaved: {
+                console.log("preview", camera.imageCapture.capturedImagePath)
+
             }
         }
     }
@@ -38,14 +61,15 @@ Rectangle {
         MouseArea {
             anchors.fill: parent
             onPressed: {
-                camera.imageCapture.captureToLocation(Settings.backgroundImagePath)
+                console.log("resolution", camera.imageCapture.resolution)
+                camera.imageCapture.captureToLocation(appPath)
             }
         }
     }
 
     Rectangle {
         id: previewPane
-        visible: false
+        visible: previewPaneVisible
         anchors.fill: parent
 
         Image {
@@ -62,7 +86,7 @@ Rectangle {
             anchors.bottom: parent.bottom
             onClicked: {
                 camera.start()
-                previewPane.visible = false
+                previewPaneVisible = false
             }
         }
         Button {
@@ -82,9 +106,9 @@ Rectangle {
             anchors.right: parent.right
             anchors.bottom: parent.bottom
             onClicked: {
-                previewPane.visible = false
+                previewPaneVisible = false
                 mainForm.hideCameraPanel()
-                mainForm.sketch.setBackground(photoPreview.source)
+                mainForm.sketch.setBackground("file:///" + camera.imageCapture.capturedImagePath)
 
             }
         }

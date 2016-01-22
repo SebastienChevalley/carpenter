@@ -16,6 +16,7 @@
 #include <assimp/postprocess.h>
 #include <assimp/material.h>
 #include <assimp/Exporter.hpp>
+#include <assimp/Importer.hpp>
 #include <sketchmesh.h>
 #include <sketchpoint.h>
 #include <sketchline.h>
@@ -47,7 +48,7 @@ class SketchConverter : public QObject
         QSharedPointer<SketchLine> addLine(QObject* line, QMap<QObject*, QList<QObject*>> linesPerPoint);
         QSharedPointer<SketchJoint> addJoint(QObject* point, QList<QObject*> lines);
         QSharedPointer<SketchPoint> addPoint(QObject* point);
-        QSharedPointer<aiScene> generateScene();
+        QSharedPointer<aiScene> generateScene(double scale);
         QList<QSharedPointer<SketchMesh>> meshes;
 
     public slots:

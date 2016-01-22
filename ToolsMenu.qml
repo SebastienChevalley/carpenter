@@ -12,7 +12,7 @@ Rectangle {
     height: menuItems.count * itemHeight
 
 
-    property real itemHeight: 64
+    property real itemHeight: 72
 
     anchors.left: sketchArea.left
     anchors.leftMargin: 10
@@ -34,7 +34,7 @@ Rectangle {
 
     ListView {
         height: menu.height
-        width:50
+        width:itemHeight
 
         model: menuItems
         delegate: Rectangle {

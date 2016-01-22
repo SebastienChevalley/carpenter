@@ -18,12 +18,12 @@ ButtonStyle {
     }
     label: RowLayout {
         Rectangle {
-            width: childrenRect.width + 5
-            height: childrenRect.height + 10
+            width: childrenRect.width + 15
+            height: childrenRect.height + 20
             color: "transparent"
             Label {
-                y: 5
-                x: 5
+                y: 8
+                x: 10
                 font.family: "FontAwesome"
                 font.pointSize: 16
                 text: icon
@@ -33,10 +33,11 @@ ButtonStyle {
 
         Rectangle {
             width: childrenRect.width + 5
-            height: childrenRect.height + 10
+            height: childrenRect.height + 20
             color: "transparent"
             Label {
-                y: 5
+                y: 10
+                font.pointSize: 12
                 color: Settings.roundedButtonLabelColor
                 text: control.text
             }

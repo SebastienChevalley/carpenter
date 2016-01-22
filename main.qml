@@ -5,6 +5,12 @@ import QtQuick.Controls 1.4
 import QtQuick.Controls.Styles 1.4
 import QtMultimedia 5.5
 import QtGraphicalEffects 1.0
+import Qt.labs.folderlistmodel 2.1
+
+import Qt3D 2.0
+import Qt3D.Renderer 2.0
+import QtQuick 2.1 as QQ2
+import QtQuick.Scene3D 2.0
 
 import "." // to import Settings
 import "qrc:/tools/tools/SelectTool.js" as SelectTool
@@ -16,11 +22,15 @@ import "qrc:/lib/lib/lodash.js" as Lodash
 import SketchConverter 1.0
 import SketchConstraintsSolver 1.0
 import SketchLolExporter 1.0
+import DisplayKeyboard 1.0
+
 
 Window {
     visible: true
     width: Settings.appWidth
     height: Settings.appHeight
+    visibility: "Maximized"
+
 
     MainForm {
         id: mainForm
@@ -117,6 +127,11 @@ Window {
             captureImagePanel.visible = false
         }
 
+        SplashScreen { }
+        WelcomeScreen { id: welcomeScreen }
+        Viewer3D { id: viewer3d }
+
+        DisplayKeyboard { id: displayKeyboard }
         MenuItem { id: menuItems }
         MessageBox { id: message }
 
@@ -138,27 +153,19 @@ Window {
                 ToolsMenu { id: menu }
 
                 Label {
+                    id: helpTip
                     text: "First, you should set the scale by selecting an item, and defines its length"
                     z:100
                     anchors.bottom: parent.bottom
                     anchors.bottomMargin: 10
                     anchors.left: parent.left
                     anchors.leftMargin: 10
-                    id: helpTip
                 }
 
                 Ruler { id: ruler }
 
                 PointContextMenu { id: pointContextMenu }
                 LineContextMenu { id: lineContextMenu }
-
-                Image {
-                    id: backgroundImage
-                    anchors.fill: parent
-                    fillMode: Settings.backgroundFillMode
-                    opacity: 0.5
-                    source: sketch.isBackgroundSet() ? sketch.getBackground() : ""
-                }
 
                 MouseArea {
                     id: mouseArea
@@ -194,8 +201,8 @@ Window {
                         }
                         onLineRemoved: {
                             console.log("lineRemoved(id: ", identifier, ")")
-                            mouseArea.lines[identifier].destroy()
-                            mouseArea.lines = _.omit(mouseArea.lines, identifier)
+                            mouseArea.lines[identifier.toString()].destroy()
+                            mouseArea.lines = _.omit(mouseArea.lines, identifier.toString())
                         }
 
                         onHorizontallyConstrainLine: {
@@ -269,6 +276,13 @@ Window {
 
         }
 
+        Image {
+            id: backgroundImage
+            anchors.fill: parent
+            fillMode: Settings.backgroundFillMode
+            opacity: 0.5
+            source: sketch.isBackgroundSet() ? sketch.getBackground() : ""
+        }
     }
 }
 

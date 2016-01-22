@@ -1,6 +1,6 @@
 TEMPLATE = app
 
-QT += qml quick
+QT += qml quick multimedia 3dcore 3drenderer 3dinput 3dquick
 CONFIG += c++11
 
 SOURCES += main.cpp \
@@ -15,7 +15,8 @@ SOURCES += main.cpp \
     solve.cpp \
     derivatives.cpp \
     sketchlolexporter.cpp \
-    parameter.cpp
+    parameter.cpp \
+    displaykeyboard.cpp
 
 HEADERS += sketch_converter.h \
     sketchmesh.h \
@@ -27,10 +28,12 @@ HEADERS += sketch_converter.h \
     sketchjoint.h \
     solve.h \
     sketchlolexporter.h \
-    parameter.h
+    parameter.h \
+    displaykeyboard.h
 
 
-RESOURCES += qml.qrc
+RESOURCES += qml.qrc \
+    3d.qrc
 
 # enable debug
 DEFINES += CARPENTER_DEBUG

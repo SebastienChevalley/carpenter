@@ -79,6 +79,13 @@ bool SketchConverter::exportToFile(QObject* sketch, QString file, QString& error
     // collect the line per node
     QMap<QObject*, QList<QObject*>> linesPerPoint;
 
+    QVariant mmPerPixelScale;
+    bool isGetMmPerPixelScaleCallWorks = QMetaObject::invokeMethod(
+                sketch,
+                "getMmPerPixelScale",
+                Q_RETURN_ARG(QVariant, mmPerPixelScale)
+    );
+
 
 #ifdef CARPENTER_USE_SKETCHPOINT
     foreach(QVariant rawPoint, points) {
@@ -145,10 +152,18 @@ bool SketchConverter::exportToFile(QObject* sketch, QString file, QString& error
 #endif
 
     // create a scene
-    QSharedPointer<aiScene> scene = this->generateScene();
+    QSharedPointer<aiScene> scene = this->generateScene(mmPerPixelScale.toDouble());
 
     Assimp::Exporter exporter;
-    aiReturn state = exporter.Export(scene.data(), "collada", file.toStdString().c_str(), aiProcess_Triangulate);
+
+    QString path = (file + ".obj");
+    QString path2 = (file + ".final.obj");
+    aiReturn state = exporter.Export(scene.data(), "obj", path.toStdString().c_str(), aiProcess_Triangulate);
+
+    Assimp::Importer importer;
+    const aiScene* import = importer.ReadFile(path.toStdString().c_str(), 0);
+
+    state = exporter.Export(import, "obj", path2.toStdString().c_str());
 
 
     if(state == AI_SUCCESS) {
@@ -164,7 +179,7 @@ bool SketchConverter::exportToFile(QObject* sketch, QString file, QString& error
     }
 }
 
-QSharedPointer<aiScene> SketchConverter::generateScene() {
+QSharedPointer<aiScene> SketchConverter::generateScene(double scale) {
     QSharedPointer<aiScene> scene(new aiScene());
 
     scene->mRootNode = new aiNode();
@@ -181,6 +196,47 @@ QSharedPointer<aiScene> SketchConverter::generateScene() {
     scene->mNumMeshes = meshes.size();
     scene->mRootNode->mMeshes = new unsigned int[ meshes.size() ];
     scene->mRootNode->mNumMeshes = meshes.size();
+
+
+    // getting the origin :
+    double minX = 0;
+    double maxX = 0;
+    double minY = 0;
+    double maxY = 0;
+    bool first = true;
+
+    foreach(QSharedPointer<SketchMesh> mesh, this->meshes) {
+        foreach(QVector3D vertex, mesh->getVertices()) {
+            double x = vertex.x();
+            double y = vertex.y();
+
+            if(first) {
+                first = false;
+                minX = x;
+                maxY = x;
+
+                minY = y;
+                maxY = y;
+            }
+            else {
+                if(x > maxX) {
+                    maxX = x;
+                }
+                if(x < minX) {
+                    minX = x;
+                }
+                if(y > maxY) {
+                    maxY = y;
+                }
+                if(y < minY) {
+                    minY = y;
+                }
+            }
+        }
+    }
+
+    double moveX = - (maxX + minX) / 2.0;
+    double moveY = - (maxY + minY) / 2.0;
 
 
     // per mesh initialization, set the material to 0
@@ -200,9 +256,11 @@ QSharedPointer<aiScene> SketchConverter::generateScene() {
         pMesh->mVertices = new aiVector3D[verticesCount];
         pMesh->mNumVertices = verticesCount;
 
+
+
         for(int j = 0; j < verticesCount; j++) {
             QVector3D vertex = mesh->getVertices().at(j);
-            pMesh->mVertices[j] = aiVector3D( vertex.x() * 0.1, vertex.y() * 0.1, vertex.z() * 0.1 );
+            pMesh->mVertices[j] = aiVector3D( (vertex.x() + moveX) * scale, (vertex.y() + moveY) * scale, vertex.z() * scale );
             //pMesh->mVertices[j] = aiVector3D(vertex.x(), vertex.y(), vertex.z());
         }
 

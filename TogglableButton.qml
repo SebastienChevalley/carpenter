@@ -38,6 +38,7 @@ ButtonStyle {
                 y: 10
                 color: "#ffffff"
                 text: control.text
+                font.pixelSize: 14
             }
         }
     }

@@ -18,7 +18,7 @@ QtObject {
 
     readonly property int backgroundFillMode: Image.PreserveAspectCrop
 
-    readonly property real pointSize: 20 // diameter
+    readonly property real pointSize: 50 // diameter
 
     readonly property real minimalPointDistance: 100
     readonly property real constructionLineWidth: 50 // diameter

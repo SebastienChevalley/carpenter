@@ -127,6 +127,7 @@ Rectangle {
             color: "#ffffff"
             text: "Errror message"
             anchors.margins: 5
+            font.pointSize: 14
 
             Layout.fillWidth: true
         }

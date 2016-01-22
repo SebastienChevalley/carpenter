@@ -146,7 +146,7 @@ QVariant SketchConstraintsSolver::solve() {
 
     int visitedEdge = 0;
     int appliedConstraints = 0;
-    while(!waitingList.isEmpty()) {
+    /*while(!waitingList.isEmpty()) {
         QSharedPointer<ConstrainedPoint> current;
 
         current = waitingList.dequeue();
@@ -182,7 +182,7 @@ QVariant SketchConstraintsSolver::solve() {
                 }
             }
         }
-    }
+    }*/
 
     /*
      * apply distance constraints
@@ -194,13 +194,87 @@ QVariant SketchConstraintsSolver::solve() {
      * 4.
      */
     QList<QSharedPointer<double>> parameters;
-    SketchSolvePoint solvePoints[this->points.size()];
-    Line solveLines[this->lines.size()];
+    SketchSolvePoint* solvePoints = new SketchSolvePoint[this->points.size()];
+    Line* solveLines = new Line[this->lines.size() /2]; // duplicate them in early stage
     int totalConstraints = this->constraints.size() + horizontalAndVerticalConstraints;
-    Constraint constraints[totalConstraints];
+    Constraint* constraints = new Constraint[totalConstraints];
     QMap<QString, int> identifierToSolvePointsIndex;
 
+    double _parameters[100];
+    SketchSolvePoint _points[100];
+    Line _lines[100];
+    Constraint _constraints[100];
+    QMap<QString, int> _idToIndex;
+
+    // ----------------------------------------------------------
+    // new implementation for points
     int i = 0;
+    foreach(QSharedPointer<ConstrainedPoint> point, this->points) {
+        _points[i].x = &_parameters[2*i];
+        _points[i].y = &_parameters[2*i + 1];
+
+        _parameters[2*i] = point->x()->value();
+        _parameters[2*i + 1] = point->y()->value();
+
+        _idToIndex[point->identifier()] = i;
+
+        i = i + 1;
+    }
+
+    int parametersIndex = 2*i;
+
+    QSet<int> _identifiersSeen;
+
+    i = 0;
+    int cIndex = 0;
+    // new implementations for lines and constraints
+    foreach(QSharedPointer<ConstrainedLine> line, this->lines) {
+        if(!_identifiersSeen.contains(line->identifier)) {
+                _identifiersSeen += line->identifier;
+
+
+            _lines[i].p1 = _points[_idToIndex[line->start->identifier()]];
+            _lines[i].p2 = _points[_idToIndex[line->end->identifier()]];
+
+            if(line->isDistanceFixed()) {
+                _constraints[cIndex].line1 = _lines[i];
+                _constraints[cIndex].type = lineLength;
+                _constraints[cIndex].parameter = &_parameters[parametersIndex];
+                _parameters[parametersIndex] = line->getDesiredDistance() * pixelPerMmScale;
+
+                cIndex++;
+                parametersIndex++;
+            }
+
+            if(line->isHorizontalConstrained()) {
+                _constraints[cIndex].line1 = _lines[i];
+                _constraints[cIndex].type = sketchSolveHorizontal;
+
+                cIndex++;
+            }
+
+            if(line->isVerticallyConstrained()) {
+                _constraints[cIndex].line1 = _lines[i];
+                _constraints[cIndex].type = sketchSolveVertical;
+
+                cIndex++;
+            }
+
+            i++;
+        }
+    }
+
+    double *_pparameters[100];
+    for(int i=0;i<100;i++) {
+            _pparameters[i] = &_parameters[i];
+    }
+
+    int _result = ::solve(_pparameters, parametersIndex, _constraints, cIndex, fine);
+
+
+    // ----------------------------------------------------------
+
+    i = 0;
     foreach(QSharedPointer<ConstrainedPoint> point, this->points) {
         if(!point->fixedX()) {
             parameters.append(point->x().data()->address());
@@ -215,6 +289,10 @@ QVariant SketchConstraintsSolver::solve() {
         identifierToSolvePointsIndex.insert(point->identifier(), i);
 
         i++;
+    }
+
+    foreach(QSharedPointer<double> p, parameters) {
+        qDebug() << p << ":" << *(p.data()) << p.data();
     }
 
     double* pparameters[parameters.size()];
@@ -260,8 +338,10 @@ QVariant SketchConstraintsSolver::solve() {
     i = 0;
     foreach(QSharedPointer<double> parameter, parameters) {
         pparameters[i] = parameter.data();
+
         i++;
     }
+
 
 #ifdef CARPENTER_DEBUG
     qDebug() << "SketchSolver: line constraints";
@@ -276,7 +356,9 @@ QVariant SketchConstraintsSolver::solve() {
 #endif
 
 
-    int result = ::solve(pparameters, parameters.size(), constraints, totalConstraints, fine);
+    //int result = ::solve(pparameters, parameters.size(), constraints, totalConstraints, fine);
+    int result = _result;
+    //int result = noSolution;
 
     if(result == succsess) {
 #ifdef CARPENTER_DEBUG
@@ -290,6 +372,15 @@ QVariant SketchConstraintsSolver::solve() {
             qDebug() << "SketchSolver: (" << point->x().data()->value() << "," << point->y().data()->value() << ")";
             qDebug() << "SketchSolver: " << point->identifier();
 #endif
+        }
+
+        i = 0;
+        foreach(QSharedPointer<ConstrainedPoint> point, this->points) {
+            int id = _idToIndex[point->identifier()];
+            *(point->x()->address()) = *_points[id].x;
+            *(point->y()->address()) = *_points[id].y;
+
+            i++;
         }
 
         this->solved = true;

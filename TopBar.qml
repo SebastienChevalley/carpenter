@@ -9,16 +9,31 @@ Rectangle {
     id: menuBar
     Layout.fillWidth: true
     color: "transparent"
-    height:60
+    height:100
     z: 1000
 
     RowLayout {
         Layout.fillHeight: true
         Layout.fillWidth: true
 
-        anchors.leftMargin: 10
-        anchors.rightMargin: 10
+        anchors.leftMargin: 20
+        anchors.rightMargin: 20
         anchors.fill: parent
+
+        Button {
+            text: "Menu"
+            style: RoundedButton {
+                icon: "\uf060";
+            }
+
+            onClicked: {
+                welcomeScreen.visible = true
+            }
+        }
+
+        Item {
+            width: 10
+        }
 
         Label {
             Layout.fillWidth: true
@@ -73,7 +88,7 @@ Rectangle {
                 var lolExportResult = mouseArea.lolExporter.exportToFile(Settings.assetsExportPath + "model");
                 console.log("lolExportResult", lolExportResult);
 
-                var exportResult = mouseArea.converter.exportToFile(sketch, Settings.assetsExportPath + "output.dae");
+                var exportResult = mouseArea.converter.exportToFile(sketch, Settings.assetsExportPath + "output-" + new Date().getTime());
                 console.log("exportResult: ", exportResult);
 
                 if(exportResult === true) {

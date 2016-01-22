@@ -85,7 +85,7 @@ Item {
         }
         else {
             pointRemoved(id)
-            return _.assign({}, store, { 'points': store.points.filter(function(point) { return point.identifier !== id }) })
+            return _.assign({}, store, { 'points': store.points.filter(function(point) { return parseInt(point.identifier, 10) !== parseInt(id, 10) }) })
         }
     }
 
@@ -102,10 +102,54 @@ Item {
 
         // TODO : merge points if they fall in same place (degenerate situation)
 
+        /*var positionRegistered = [];
+        var keyForPosition = [];
+        var newStore = store;
+
+        var grouped = _.groupBy(
+            _.keys(pointsToMove),
+            function(identifier) {
+                var position = pointsToMove[identifier];
+                var index = _.findIndex(positionRegistered, function(x) { return x.fuzzyEquals(position); });
+                var key = "("+ position.x + "," + position.y + ")";
+                if(index === -1) {
+                    positionRegistered.push(position);
+                    keyForPosition.push(key);
+                }
+
+                return keyForPosition[index === -1 ? keyForPosition.length - 1 : index];
+            }
+        );
+
+        console.log("grouped", JSON.stringify(grouped));
+
+        _.forEach(grouped, function(value, key) {
+            var identifier = parseInt(value[0], 10);
+
+            if(value.length === 1) {
+                return;
+            }
+
+            for(var i = 1; i < value.length; i++) {
+                console.log("merge", parseInt(value[i], 10), "with", identifier)
+                newStore = mergeTwoPointReducer(newStore, pointById(parseInt(value[i], 10), newStore), pointById(identifier, newStore));
+            }
+        });
+
+        _.forEach(grouped, function(value, key) {
+            var identifier = parseInt(value[0], 10);
+            newStore = movePointReducer(newStore, identifier, pointsToMove[identifier]);
+        })
+
         var newStore = store;
         for (var identifier in pointsToMove) {
-            newStore = movePointReducer(newStore, parseInt(identifier, 10), pointsToMove[identifier]);
-        }
+            // merge points
+        }*/
+
+        var newStore = store;
+                for (var identifier in pointsToMove) {
+                    newStore = movePointReducer(newStore, parseInt(identifier, 10), pointsToMove[identifier]);
+                }
 
         updateStore(newStore);
     }
@@ -227,12 +271,16 @@ Item {
         newStore = addLineReducer(newStore, startId, intermediatePointId);
         newStore = addLineReducer(newStore, intermediatePointId, endId);
 
-        updateStore(newStore);
+        (updateStore)(newStore);
     }
 
     signal mergeTwoPoint(Point thisOne, Point withThis)
 
     onMergeTwoPoint: {
+        updateStore(mergeTwoPointReducer(store, thisOne, withThis))
+    }
+
+    function mergeTwoPointReducer(store, thisOne, withThis) {
         console.log("ON MERGE TWO POINT")
         // get each lines concerned with this point
         var lines = linesRelatedToId(thisOne.identifier)
@@ -267,9 +315,9 @@ Item {
 
         // we always want to remove
         newStore = removePointReducer(newStore, thisOne.identifier)
-        console.assert(newStore.points.length === store.points.length - 1, "MERGE TWO POINT :merged point wasn't removed correctly")
+        //console.assert(newStore.points.length === store.points.length - 1, "MERGE TWO POINT :merged point wasn't removed correctly")
 
-        updateStore(newStore)
+        return newStore
     }
 
     signal setInitialScale(real line, real mmLength)
@@ -576,15 +624,16 @@ Item {
     }
 
     function pointExistsById(id, store) {
+        console.log("pointExistsById", id)
         store = store === undefined ? this.store : store;
         return store.points.filter(function(point) {
-            return point.identifier === id
+            return parseInt(point.identifier, 10) === parseInt(id, 10)
         }).length > 0;
     }
 
     function pointById(id, store) {
         store = store === undefined ? this.store : store;
-        return _.find(store.points, function(point) { return point.identifier === id });
+        return _.find(store.points, function(point) { return parseInt(point.identifier, 10) === parseInt(id, 10) });
     }
 
     function pointByVector(vector, store) {
@@ -599,7 +648,7 @@ Item {
       */
     function indexOfPoint(store, id) {
         store = store === undefined ? this.store : store;
-        return _.findIndex(store.points, function(point) { return point.identifier === id; })
+        return _.findIndex(store.points, function(point) { return parseInt(point.identifier,10) === parseInt(id, 10); })
     }
 
     function indexOfLine(store, id) {

@@ -12,7 +12,7 @@ Point {
 
     Rectangle {
         id: point
-        width: parent.selected ? Settings.pointSize * 1.8 : Settings.pointSize
+        width: Settings.pointSize
         height: width
         radius: width / 2.0
         color: parent.selected ? Settings.insertPointSelected : pointColor
