@@ -156,20 +156,26 @@ bool SketchConverter::exportToFile(QObject* sketch, QString file, QString& error
 
     Assimp::Exporter exporter;
 
-    QString path = (file + ".obj");
-    QString path2 = (file + ".final.obj");
-    aiReturn state = exporter.Export(scene.data(), "obj", path.toStdString().c_str(), aiProcess_Triangulate);
+    QString pathDae = (file + ".dae");
+    QString pathObj = (file + ".obj");
+    QString pathObjFinal = (file + ".final.obj");
+    aiReturn stateDae = exporter.Export(scene.data(), "collada", pathDae.toStdString().c_str(), aiProcess_Triangulate);
+    aiReturn stateObj = exporter.Export(scene.data(), "obj", pathObj.toStdString().c_str(), aiProcess_Triangulate);
 
     Assimp::Importer importer;
-    const aiScene* import = importer.ReadFile(path.toStdString().c_str(), 0);
+    const aiScene* import = importer.ReadFile(pathObj.toStdString().c_str(), 0);
 
-    state = exporter.Export(import, "obj", path2.toStdString().c_str());
+    aiReturn stateObjFinal = aiReturn_FAILURE;
+
+    if(stateObj == AI_SUCCESS) {
+        stateObjFinal = exporter.Export(import, "obj", pathObjFinal.toStdString().c_str());
+    }
 
 
-    if(state == AI_SUCCESS) {
+    if(stateDae == AI_SUCCESS && stateObj == AI_SUCCESS && stateObjFinal == AI_SUCCESS) {
         return true;
     }
-    else if(state == AI_OUTOFMEMORY) {
+    else if(stateDae == AI_OUTOFMEMORY || stateObj == AI_OUTOFMEMORY || stateObjFinal == AI_OUTOFMEMORY) {
         error = "Pas assez de mémoire vive pour terminer l'opération";
         return false;
     }
